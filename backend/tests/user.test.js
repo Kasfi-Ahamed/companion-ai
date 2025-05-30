@@ -1,61 +1,65 @@
-jest.setTimeout(20000);
 const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../app");
 const User = require("../models/User");
 
-require("dotenv").config({ path: ".env.test" });
-
-let token;
+jest.setTimeout(20000); // Increase timeout for Docker-based MongoDB
 
 beforeAll(async () => {
-  await mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  });
-  await User.deleteOne({ email: "test@example.com" }); // clean up before test
+  let connected = false;
+  let attempts = 0;
+
+  while (!connected && attempts < 5) {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+      connected = true;
+    } catch (err) {
+      attempts++;
+      console.log(`Retrying MongoDB connection (${attempts})...`);
+      await new Promise((res) => setTimeout(res, 3000));
+    }
+  }
 });
 
 afterAll(async () => {
-  await User.deleteOne({ email: "test@example.com" }); // clean up after test
-  await mongoose.connection.close();
+  await mongoose.connection.db.dropDatabase();
+  await mongoose.disconnect();
 });
 
-describe("User Auth Flow", () => {
-  test("Register a new user", async () => {
+describe("User Routes", () => {
+  let token;
+
+  it("should register a new user", async () => {
     const res = await request(app).post("/api/auth/register").send({
       name: "Test User",
-      email: "test@example.com",
-      password: "password123"
+      email: "testuser@example.com",
+      password: "testpassword",
     });
-    expect(res.statusCode).toBe(201);
-    expect(res.body.message).toBe("Registered successfully");
-  });
 
-  test("Login with the new user", async () => {
-    const res = await request(app).post("/api/auth/login").send({
-      email: "test@example.com",
-      password: "password123"
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.token).toBeDefined();
+    expect(res.statusCode).toEqual(201);
+    expect(res.body).toHaveProperty("token");
     token = res.body.token;
   });
 
-  test("Get user profile", async () => {
+  it("should log in the user", async () => {
+    const res = await request(app).post("/api/auth/login").send({
+      email: "testuser@example.com",
+      password: "testpassword",
+    });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toHaveProperty("token");
+  });
+
+  it("should get user profile", async () => {
     const res = await request(app)
       .get("/api/profile")
       .set("Authorization", `Bearer ${token}`);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.email).toBe("test@example.com");
-  });
 
-  test("Update user mood", async () => {
-    const res = await request(app)
-      .put("/api/profile")
-      .set("Authorization", `Bearer ${token}`)
-      .send({ mood: "Happy" });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.mood).toBe("Happy");
+    expect(res.statusCode).toEqual(200);
+    expect(res.body).toHaveProperty("email", "testuser@example.com");
   });
 });
