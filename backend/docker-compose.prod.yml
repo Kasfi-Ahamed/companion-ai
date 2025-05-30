@@ -9,12 +9,7 @@ services:
       - mongo-data:/data/db
     networks:
       - backend-net
-  sonarqube:
-    image: sonarqube
-    ports:
-      - "9000:9000"
-    networks:
-      - backend-net
+
 
   backend:
     build: .
