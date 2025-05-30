@@ -43,7 +43,7 @@ pipeline {
     stage('Code Quality') {
       steps {
         dir('backend') {
-          bat 'sonar-scanner.bat -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.login=YOUR_SONAR_TOKEN'
+          bat 'sonar-scanner.bat -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.login=squ_c27281968014c7cca78fd2932778a099ae977dc9'
         }
       }
     }
