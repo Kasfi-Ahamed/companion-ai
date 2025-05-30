@@ -5,8 +5,8 @@ const Reminder = require("../models/Reminder");
 const router = express.Router();
 
 router.get("/", protect, async (req, res) => {
-  const reminders = await Reminder.find({ userId: req.user.id });
-  res.json(reminders);
+  const reminder = await Reminder.find({ userId: req.user.id });
+  res.json(reminder);
 });
 
 router.post("/", protect, async (req, res) => {

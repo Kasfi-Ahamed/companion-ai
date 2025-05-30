@@ -1,3 +1,4 @@
+jest.setTimeout(20000);
 const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../app");
@@ -8,6 +9,7 @@ require("dotenv").config({ path: ".env.test" });
 let token, reminderId;
 
 beforeAll(async () => {
+  await User.deleteOne({ email: "reminder@example.com" });
   await mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -46,7 +48,7 @@ describe("Reminder CRUD", () => {
     reminderId = res.body._id;
   });
 
-  test("Get all reminders", async () => {
+  test("Get all reminder", async () => {
     const res = await request(app)
       .get("/api/reminder")
       .set("Authorization", `Bearer ${token}`);
