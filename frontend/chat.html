@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CompanionAI - Chat</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <header style="display: flex; justify-content: space-between; align-items: center;">
+    <span>Talk to Me</span>
+    <div>
+      <button onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">🌓</button>
+      <button onclick="location.href='logout.html'" style="background: #dc3545; color: white;" aria-label="Logout">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="chat-box" id="chatBox" aria-label="Chat Messages"></div>
+    <div style="margin-top: 15px;">
+      <input type="text" id="userInput" placeholder="Type or speak..." aria-label="Chat Input" style="width: 60%;">
+      <button onclick="sendMessage()" aria-label="Send Message">Send</button>
+      <button onclick="startVoiceInput()" aria-label="Start Voice Input">🎤</button>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script>
+    window.onload = () => {
+      applyDarkMode();
+      resetIdleTimer();
+    };
+
+    function sendMessage() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      const chatBox = document.getElementById('chatBox');
+      const userMsg = document.createElement('div');
+      userMsg.className = 'chat-message user-msg';
+      userMsg.innerHTML = `${message}<br><small>${new Date().toLocaleTimeString()}</small>`;
+      chatBox.appendChild(userMsg);
+
+      const typing = document.createElement('div');
+      typing.className = 'chat-message ai-msg typing';
+      typing.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+      chatBox.appendChild(typing);
+      input.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      setTimeout(() => {
+        typing.remove();
+        const reply = document.createElement('div');
+        reply.className = 'chat-message ai-msg';
+        reply.innerHTML = `I'm here for you.<br><small>${new Date().toLocaleTimeString()}</small>`;
+        chatBox.appendChild(reply);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        speak("I'm here for you.");
+        showToast("✅ CompanionAI responded");
+      }, 1500);
+    }
+
+    function speak(text) {
+      const msg = new SpeechSynthesisUtterance();
+      msg.text = text;
+      msg.lang = 'en-US';
+      window.speechSynthesis.speak(msg);
+    }
+
+    function startVoiceInput() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'en-US';
+      recognition.start();
+      recognition.onresult = function(event) {
+        document.getElementById('userInput').value = event.results[0][0].transcript;
+      };
+    }
+
+    function showToast(msg) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = msg;
+      document.getElementById("toast-container").appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    function applyDarkMode() {
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
+    }
+
+    let idleTimer;
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        localStorage.clear();
+        window.location.href = "logout.html";
+      }, 15 * 60 * 1000);
+    }
+    document.onmousemove = resetIdleTimer;
+    document.onkeypress = resetIdleTimer;
+  </script>
+</body>
+</html>

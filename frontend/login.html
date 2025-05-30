@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - CompanionAI</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    .intro-box {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .intro-box img {
+      width: 100px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    .typing-text {
+      font-size: 18px;
+      font-style: italic;
+      color: #666;
+      animation: fadeIn 2s ease-in;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <header style="display: flex; justify-content: space-between; align-items: center;">
+    <span>Welcome to CompanionAI</span>
+    <button onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">🌓</button>
+  </header>
+
+  <div class="container" style="text-align: center;">
+    <!-- 🤖 CompanionAI Greeting -->
+    <div class="intro-box" aria-label="AI Greeting">
+      <img src="https://cdn-icons-png.flaticon.com/512/4712/4712035.png" alt="AI Icon">
+      <div class="typing-text">“Hi! I'm CompanionAI. I'm here to guide you, remind you, and keep you company.”</div>
+    </div>
+
+    <!-- Login Form -->
+    <form onsubmit="loginUser(event)">
+      <input type="email" id="email" placeholder="Email" aria-label="Email" required><br><br>
+      <input type="password" id="password" placeholder="Password" aria-label="Password" required><br><br>
+      <button type="submit" aria-label="Login Button">Login</button>
+    </form>
+
+    <p id="loginMessage" style="font-weight: bold;"></p>
+    <p>Don't have an account? <a href="register.html">Register here</a></p>
+  </div>
+
+  <script>
+    function loginUser(event) {
+      event.preventDefault(); // ✅ Prevent page from flashing
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      })
+      .then(res => res.json().then(data => ({ status: res.status, body: data })))
+      .then(({ status, body }) => {
+        const messageBox = document.getElementById("loginMessage");
+        if (status === 200) {
+          messageBox.textContent = body.message || "Login successful";
+          messageBox.style.color = "green";
+          localStorage.setItem("user", JSON.stringify(body.user));
+          localStorage.setItem("token", body.token); // ✅ store token too
+          window.location.href = "index.html";
+        } else {
+          messageBox.textContent = body.message || "Login failed";
+          messageBox.style.color = "red";
+        }
+      })
+      .catch(err => {
+        console.error("Login error:", err);
+        const messageBox = document.getElementById("loginMessage");
+        messageBox.textContent = "Login failed. Please try again.";
+        messageBox.style.color = "red";
+      });
+    }
+
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    window.onload = () => {
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
+    };
+  </script>
+</body>
+</html>

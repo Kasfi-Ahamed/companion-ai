@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CompanionAI - Reminders</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <!-- Header with logout and dark mode -->
+  <header style="display: flex; justify-content: space-between; align-items: center;">
+    <span>Reminders</span>
+    <div>
+      <button onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">🌓</button>
+      <button onclick="location.href='logout.html'" style="background: #dc3545; color: white;" aria-label="Logout">Logout</button>
+    </div>
+  </header>
+
+  <!-- Reminder form and list -->
+  <div class="container" style="text-align: center;">
+    <h3>Add a New Task</h3>
+    <input type="time" id="taskTime" aria-label="Task Time">
+    <input type="text" id="taskText" placeholder="Task Description" aria-label="Task Description">
+    <button onclick="addTask()" aria-label="Add Task">Add Task</button>
+
+    <h3 style="margin-top: 30px;">Today's Tasks</h3>
+    <ul id="scheduleList" aria-label="Schedule List"></ul>
+    <p id="doneMsg" style="font-weight: bold; color: green;"></p>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toast-container"></div>
+
+  <script>
+    let reminders = []; // store reminders fetched from backend
+
+    window.onload = () => {
+      applyDarkMode();
+      resetIdleTimer();
+      loadTasks(); // fetch reminders from backend
+    };
+
+    // 🔄 Load reminders from backend
+    async function loadTasks() {
+      const token = localStorage.getItem("token");
+      if (!token) return location.href = "login.html";
+
+      const res = await fetch("http://localhost:5000/api/reminder", {
+        headers: { Authorization: "Bearer " + token }
+      });
+
+      if (!res.ok) return showToast("❌ Failed to fetch reminders");
+
+      reminders = await res.json();
+      renderList();
+    }
+
+    // 🧾 Render the list to the DOM
+    function renderList() {
+      const list = document.getElementById("scheduleList");
+      list.innerHTML = "";
+
+      reminders.forEach(reminder => {
+        const li = document.createElement("li");
+        li.className = "card";
+        li.textContent = `${reminder.time} – ${reminder.task}`;
+        li.setAttribute("data-id", reminder._id);
+        li.setAttribute("role", "button");
+        li.onclick = () => deleteTask(reminder._id);
+        list.appendChild(li);
+      });
+    }
+
+    // ➕ Add new reminder to backend
+    async function addTask() {
+      const token = localStorage.getItem("token");
+      const time = document.getElementById("taskTime").value;
+      const task = document.getElementById("taskText").value;
+
+      if (!time || !task) return showToast("⚠️ Time and task required");
+
+      const res = await fetch("http://localhost:5000/api/reminder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ time, task })
+      });
+
+      if (!res.ok) return showToast("❌ Failed to add task");
+
+      const newTask = await res.json();
+      reminders.push(newTask); // update local array
+      renderList(); // re-render
+      document.getElementById("taskTime").value = "";
+      document.getElementById("taskText").value = "";
+      showToast("✅ Task added");
+    }
+
+    //  Delete reminder
+    async function deleteTask(id) {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`http://localhost:5000/api/reminder/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + token }
+      });
+
+      if (!res.ok) return showToast("❌ Failed to delete");
+
+      reminders = reminders.filter(r => r._id !== id); // remove from local
+      renderList();
+      showToast("🗑️ Task deleted");
+    }
+
+    // 🌙 Dark mode toggle
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    function applyDarkMode() {
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
+    }
+
+    //  Idle timeout
+    let idleTimer;
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        localStorage.clear();
+        location.href = "logout.html";
+      }, 15 * 60 * 1000);
+    }
+    document.onmousemove = resetIdleTimer;
+    document.onkeypress = resetIdleTimer;
+
+    //  Toast message
+    function showToast(msg) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = msg;
+      document.getElementById("toast-container").appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

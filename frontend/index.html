@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CompanionAI - Home</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <!-- Header with logout and dark mode -->
+  <header style="display: flex; justify-content: space-between; align-items: center;">
+    <span id="greeting">Welcome</span>
+    <div>
+      <button onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">🌓</button>
+      <button onclick="location.href='logout.html'" style="background: #dc3545; color: white;" aria-label="Logout">Logout</button>
+    </div>
+  </header>
+
+  <!-- Dashboard content -->
+  <div class="container">
+    <h2>How can I help you today?</h2>
+    <p style="font-style: italic;">“I’m here to remind, listen and keep you company.”</p>
+
+    <p><strong>You’re feeling:</strong> <span id="moodSummary">...</span></p>
+
+    <div style="background-color: #f0f4fa; border-radius: 10px; padding: 10px;">
+      <p><strong>Health Status:</strong> All vital reminder set</p>
+      <p><strong>Caregiver Note:</strong> Daughter will call at 12:30 PM</p>
+    </div>
+
+    <div style="text-align: right;">
+      <button onclick="window.location.href='profile.html'" aria-label="Edit Profile">Edit Profile</button>
+    </div>
+
+    <!-- Navigation buttons -->
+    <div style="text-align: center;">
+      <button onclick="location.href='mood.html'" aria-label="Mood Check-in">Check-in Mood</button>
+      <button onclick="location.href='chat.html'" aria-label="Chat Page">Talk to Me</button>
+      <button onclick="location.href='reminder.html'" aria-label="Reminders">Reminders</button>
+      <button onclick="location.href='emergency.html'" style="background: #dc3545; color: white;" aria-label="Emergency Alert">Emergency</button>
+    </div>
+
+    <!-- Task summary -->
+    <h3>Your Day at a Glance</h3>
+    <ul id="scheduleList"></ul>
+
+    <button onclick="clearAll()" aria-label="Clear All Tasks">Clear View</button>
+    <p id="doneMsg" style="font-weight: bold; color: green;"></p>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toast-container"></div>
+
+  <script>
+    let reminder = [];
+
+    // 🔄 Load data on page load
+    window.onload = () => {
+      applyDarkMode();
+      resetIdleTimer();
+      loadProfileAndReminder();
+    };
+
+    // 🔁 Fetch profile + reminder from backend
+    async function loadProfileAndReminder() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        location.href = "login.html";
+        return;
+      }
+
+      try {
+        // Fetch user profile
+        const profileRes = await fetch("http://localhost:5000/api/profile", {
+          headers: { Authorization: "Bearer " + token }
+        });
+
+        const profileData = await profileRes.json();
+        if (!profileRes.ok) throw new Error(profileData.message || "Failed to load profile");
+
+        document.getElementById("greeting").textContent = `Hi ${profileData.name}, I'm CompanionAI 🤖`;
+        document.getElementById("moodSummary").textContent = profileData.mood || "Neutral";
+
+        // Fetch reminder
+        const reminderRes = await fetch("http://localhost:5000/api/reminder", {
+          headers: { Authorization: "Bearer " + token }
+        });
+
+        const reminderData = await reminderRes.json();
+        if (!reminderRes.ok) throw new Error(reminderData.message || "Failed to load reminder");
+
+        reminder = reminderData;
+        renderReminder();
+      } catch (err) {
+        console.error(err);
+        showToast("❌ Error loading profile or reminder");
+      }
+    }
+
+    // 📋 Render reminder list
+    function renderReminder() {
+      const list = document.getElementById("scheduleList");
+      list.innerHTML = "";
+      reminder.forEach(r => {
+        const li = document.createElement("li");
+        li.className = "card";
+        li.textContent = `${r.time} – ${r.task}`;
+        list.appendChild(li);
+      });
+    }
+
+    // ❌ Clear UI list (for view only)
+    function clearAll() {
+      document.getElementById("scheduleList").innerHTML = "";
+      document.getElementById("doneMsg").textContent = "🧹 View cleared (data still stored)";
+    }
+
+    // 🌙 Dark mode toggle
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    function applyDarkMode() {
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
+    }
+
+    // 🕒 Idle session timeout
+    let idleTimer;
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        localStorage.clear();
+        location.href = "logout.html";
+      }, 15 * 60 * 1000);
+    }
+    document.onmousemove = resetIdleTimer;
+    document.onkeypress = resetIdleTimer;
+
+    // 🔔 Toast message
+    function showToast(msg) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = msg;
+      document.getElementById("toast-container").appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

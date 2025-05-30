@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - CompanionAI</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    .intro-box {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .intro-box img {
+      width: 100px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    .typing-text {
+      font-size: 18px;
+      font-style: italic;
+      color: #666;
+      animation: fadeIn 2s ease-in;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <header style="display: flex; justify-content: space-between; align-items: center;">
+    <span>Register with CompanionAI</span>
+    <button onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">🌓</button>
+  </header>
+
+  <div class="container" style="text-align: center;">
+    <!-- 🤖 CompanionAI Greeting -->
+    <div class="intro-box" aria-label="AI Greeting">
+      <img src="https://cdn-icons-png.flaticon.com/512/4712/4712035.png" alt="AI Icon">
+      <div class="typing-text">“Let’s set up your account. I’ll be your helpful companion every day.”</div>
+    </div>
+
+    <!-- Registration Form -->
+    <input type="text" id="name" placeholder="Name" aria-label="Name"><br><br>
+    <input type="email" id="email" placeholder="Email" aria-label="Email"><br><br>
+    <input type="password" id="password" placeholder="Password" aria-label="Password"><br><br>
+    <button onclick="registerUser()" aria-label="Register Button">Register</button>
+    <p id="registerMessage" style="font-weight: bold;"></p>
+    <p>Already have an account? <a href="login.html">Login here</a></p>
+  </div>
+
+  <script>
+    function registerUser() {
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password })
+      })
+      .then(res => res.json().then(data => ({ status: res.status, body: data })))
+      .then(({ status, body }) => {
+        const msg = document.getElementById("registerMessage");
+        if (status === 200) {
+          msg.textContent = body.message;
+          msg.style.color = "green";
+          setTimeout(() => window.location.href = "login.html", 1500);
+        } else {
+          msg.textContent = body.message || "Registration failed";
+          msg.style.color = "red";
+        }
+      });
+    }
+
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    window.onload = () => {
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
+    };
+  </script>
+</body>
+</html>

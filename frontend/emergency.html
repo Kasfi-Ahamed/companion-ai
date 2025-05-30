@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CompanionAI - Emergency</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <header style="display: flex; justify-content: space-between; align-items: center;">
+    <span>Emergency Alert</span>
+    <div>
+      <button onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">🌓</button>
+      <button onclick="location.href='logout.html'" style="background: #dc3545; color: white;" aria-label="Logout">Logout</button>
+    </div>
+  </header>
+
+  <div class="container" style="text-align: center;">
+    <p>If you're in an emergency, please press the button below:</p>
+    <button style="background-color: #e53e3e; color: white;" onclick="sendAlert()" aria-label="Send Emergency Alert">🚨 Send Alert</button>
+    <p id="alertMsg" style="font-weight: bold; color: red; margin-top: 20px;"></p>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script>
+    function sendAlert() {
+      document.getElementById("alertMsg").textContent = "Alert sent to caregiver. Please stay calm. ❤️";
+      showToast("🚨 Emergency alert sent");
+    }
+
+    function showToast(msg) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = msg;
+      document.getElementById("toast-container").appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    function applyDarkMode() {
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
+    }
+
+    let idleTimer;
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        localStorage.clear();
+        window.location.href = "logout.html";
+      }, 15 * 60 * 1000);
+    }
+
+    window.onload = () => {
+      applyDarkMode();
+      resetIdleTimer();
+    };
+    document.onmousemove = resetIdleTimer;
+    document.onkeypress = resetIdleTimer;
+  </script>
+</body>
+</html>

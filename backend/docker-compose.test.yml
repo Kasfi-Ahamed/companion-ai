@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - backend-net
+
+  backend:
+    build: .
+    command: npm run test -- --coverage
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/companion-ai
+      - NODE_ENV=test
+    depends_on:
+      - mongodb
+    networks:
+      - backend-net
+
+networks:
+  backend-net:

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Profile - CompanionAI</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <!-- Header with logout and dark mode -->
+  <header style="display: flex; justify-content: space-between; align-items: center;">
+    <span>Edit Profile</span>
+    <div>
+      <button onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">🌓</button>
+      <button onclick="location.href='logout.html'" style="background: #dc3545; color: white;" aria-label="Logout">Logout</button>
+    </div>
+  </header>
+
+  <!-- Profile form -->
+  <div class="container" style="text-align: center;">
+    <input type="file" accept="image/*" onchange="previewImage(event)" aria-label="Upload Profile Picture"><br>
+    <img id="preview" src="https://via.placeholder.com/100" alt="Profile Preview" style="margin-top: 10px; border-radius: 50%;"><br><br>
+
+    <input type="text" id="name" placeholder="Change Name" aria-label="Name"><br><br>
+    <input type="email" id="email" placeholder="Change Email" aria-label="Email"><br><br>
+    <input type="text" id="mood" placeholder="Mood (e.g., Calm)" aria-label="Mood"><br><br>
+
+    <button onclick="saveProfile()" aria-label="Save Changes">Save Changes</button>
+    <p id="msg" style="font-weight: bold; color: green;"></p>
+  </div>
+
+  <!-- Toast notification container -->
+  <div id="toast-container"></div>
+
+  <script>
+    // Load profile data on page load
+    window.onload = () => {
+      applyDarkMode();
+      resetIdleTimer();
+      loadProfile();
+    };
+
+    //  Fetch user profile from backend
+    async function loadProfile() {
+      const token = localStorage.getItem("token");
+      if (!token) return location.href = "login.html";
+
+      const res = await fetch("http://localhost:5000/api/profile", {
+        headers: { Authorization: "Bearer " + token }
+      });
+
+      if (!res.ok) return showToast(" Failed to load profile");
+
+      const user = await res.json();
+      document.getElementById("name").value = user.name;
+      document.getElementById("email").value = user.email;
+      document.getElementById("mood").value = user.mood;
+    }
+
+    //  Save updated profile to backend
+    async function saveProfile() {
+      const token = localStorage.getItem("token");
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const mood = document.getElementById("mood").value;
+
+      const res = await fetch("http://localhost:5000/api/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ name, email, mood })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast("✅ Profile updated");
+        document.getElementById("msg").textContent = "Saved successfully!";
+      } else {
+        showToast("❌ Update failed");
+        document.getElementById("msg").textContent = "Update error.";
+      }
+    }
+
+    //  Preview image
+    function previewImage(event) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        document.getElementById("preview").src = reader.result;
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    }
+
+    //  Toggle dark mode
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    function applyDarkMode() {
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
+    }
+
+    //  Idle timeout logout
+    let idleTimer;
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        localStorage.clear();
+        location.href = "logout.html";
+      }, 15 * 60 * 1000);
+    }
+
+    document.onmousemove = resetIdleTimer;
+    document.onkeypress = resetIdleTimer;
+
+    //  Show toast message
+    function showToast(msg) {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = msg;
+      document.getElementById("toast-container").appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>
