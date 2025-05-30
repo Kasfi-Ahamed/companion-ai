@@ -10,11 +10,13 @@ require("dotenv").config({ path: ".env.test" });
 let token, reminderId;
 
 beforeAll(async () => {
-  await User.deleteOne({ email: "reminder@example.com" });
   await mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
   });
+
+  await Reminder.deleteMany({});
+  await User.deleteOne({ email: "reminder@example.com" });
 
   await request(app).post("/api/auth/register").send({
     name: "Reminder User",
@@ -32,6 +34,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await Reminder.deleteMany({});
+  await User.deleteOne({ email: "reminder@example.com" });
   await mongoose.connection.close();
 });
 
@@ -49,11 +52,12 @@ describe("Reminder CRUD", () => {
     reminderId = res.body._id;
   });
 
-  test("Get all reminder", async () => {
+  test("Get all reminders", async () => {
     const res = await request(app)
       .get("/api/reminder")
       .set("Authorization", `Bearer ${token}`);
     expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
   });
 

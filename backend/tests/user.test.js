@@ -13,10 +13,11 @@ beforeAll(async () => {
     useNewUrlParser: true,
     useUnifiedTopology: true
   });
+  await User.deleteOne({ email: "test@example.com" }); // clean up before test
 });
 
 afterAll(async () => {
-  await User.deleteMany({});
+  await User.deleteOne({ email: "test@example.com" }); // clean up after test
   await mongoose.connection.close();
 });
 
