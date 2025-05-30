@@ -9,7 +9,7 @@ services:
       - mongodb
     environment:
       - MONGO_URI=mongodb://mongodb:27017/companion-ai
-      - JWT_SECRET=your_jwt_secret_key
+      - JWT_SECRET=testsecret123
 
   mongodb:
     image: mongo
