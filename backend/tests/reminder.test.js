@@ -1,24 +1,20 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../app");
-const User = require("../models/User");
 const Reminder = require("../models/Reminder");
+const User = require("../models/User");
 
 let token;
 let reminderId;
 
-jest.setTimeout(20000);
-
 beforeAll(async () => {
-  await mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  });
+  await mongoose.connect(process.env.MONGO_URI);
+  await Reminder.deleteMany({});
+  await User.deleteMany({ email: "reminder@example.com" });
 
-  await User.deleteOne({ email: "reminder@example.com" });
-
+  // Register and login user
   await request(app).post("/api/auth/register").send({
-    name: "Reminder Tester",
+    name: "Reminder User",
     email: "reminder@example.com",
     password: "password123"
   });
@@ -27,13 +23,11 @@ beforeAll(async () => {
     email: "reminder@example.com",
     password: "password123"
   });
-
   token = res.body.token;
 });
 
 afterAll(async () => {
-  await Reminder.deleteMany({});
-  await User.deleteOne({ email: "reminder@example.com" });
+  await mongoose.connection.db.dropDatabase();
   await mongoose.connection.close();
 });
 
@@ -42,22 +36,17 @@ describe("Reminder CRUD", () => {
     const res = await request(app)
       .post("/api/reminder")
       .set("Authorization", `Bearer ${token}`)
-      .send({
-        title: "Test Reminder",
-        description: "This is a test",
-        time: "2025-12-31T23:59"
-      });
+      .send({ task: "Buy milk", time: "10:00 AM" });
 
-    expect(res.statusCode).toBe(201);
-    expect(res.body.title).toBe("Test Reminder");
+    expect(res.statusCode).toBe(200);
+    expect(res.body.task).toBe("Buy milk");
     reminderId = res.body._id;
   });
 
-  test("Get all reminder", async () => {
+  test("Get all reminders", async () => {
     const res = await request(app)
       .get("/api/reminder")
       .set("Authorization", `Bearer ${token}`);
-
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
@@ -66,8 +55,7 @@ describe("Reminder CRUD", () => {
     const res = await request(app)
       .delete(`/api/reminder/${reminderId}`)
       .set("Authorization", `Bearer ${token}`);
-
     expect(res.statusCode).toBe(200);
-    expect(res.body.message).toMatch(/deleted/i);
+    expect(res.body.message).toMatch(/Reminder deleted/);
   });
 });
