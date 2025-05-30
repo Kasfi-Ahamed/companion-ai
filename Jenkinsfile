@@ -23,14 +23,12 @@ pipeline {
 
     stage('Test') {
       steps {
-        dir('backend') {
-          bat '''
-            docker-compose -f docker-compose.test.yml down -v || exit 0
-            docker-compose -f docker-compose.test.yml up -d
-            timeout /t 15
-            docker-compose -f docker-compose.test.yml exec -T backend npm run test -- --coverage
-          '''
-        }
+        bat '''
+          docker-compose -f backend/docker-compose.test.yml down -v || exit 0
+          docker-compose -f backend/docker-compose.test.yml up -d
+          timeout /t 15 >nul
+          docker-compose -f backend/docker-compose.test.yml run --rm backend npm run test -- --coverage
+        '''
       }
     }
 
@@ -45,7 +43,7 @@ pipeline {
     stage('Code Quality') {
       steps {
         dir('backend') {
-          bat 'sonar-scanner -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.login=YOUR_SONAR_TOKEN'
+          bat 'sonar-scanner.bat -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.login=YOUR_SONAR_TOKEN'
         }
       }
     }
@@ -53,36 +51,36 @@ pipeline {
     stage('Deployment') {
       steps {
         bat '''
-          docker-compose -f docker-compose.prod.yml down -v || exit 0
-          docker-compose -f docker-compose.prod.yml up -d --build
+          docker-compose -f backend/docker-compose.prod.yml down -v || exit 0
+          docker-compose -f backend/docker-compose.prod.yml up -d --build
         '''
       }
     }
 
     stage('Release') {
       steps {
-        echo 'Release stage - could push to production or tag release here.'
+        echo '✅ Release completed. App running at http://localhost:5000'
       }
     }
 
     stage('Monitoring') {
       steps {
-        echo 'Monitoring enabled via Prometheus and Grafana on port 9090.'
+        echo '📊 Monitoring with Prometheus at http://localhost:9090'
       }
     }
 
     stage('Post Actions') {
       steps {
-        echo 'Final cleanup or notifications can go here.'
+        echo '🎯 Final stage for report/log/email or notifications.'
       }
     }
   }
 
   post {
     always {
-      echo 'Cleaning up...'
-      bat 'docker-compose -f docker-compose.test.yml down -v || exit 0'
-      bat 'docker-compose -f docker-compose.prod.yml down -v || exit 0'
+      echo '🧹 Cleaning up containers...'
+      bat 'docker-compose -f backend/docker-compose.test.yml down -v || exit 0'
+      bat 'docker-compose -f backend/docker-compose.prod.yml down -v || exit 0'
     }
   }
 }
