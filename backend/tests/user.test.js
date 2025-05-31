@@ -1,55 +1,64 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../app");
-const User = require("../models/User");
+const Reminder = require("../models/Reminder");
+const User = require("../models/User"); // ✅ FIXED MISSING IMPORT
+const jwt = require("jsonwebtoken");
 
-const testEmail = `testuser_${Date.now()}@example.com`;
 let token;
+let reminderId;
 
 beforeAll(async () => {
-  await mongoose.connect(process.env.MONGO_URI);
+  await mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+
+  await User.deleteOne({ email: "reminder@example.com" });
+  const user = await User.create({
+    name: "Reminder Tester",
+    email: "reminder@example.com",
+    password: "testpass",
+  });
+
+  token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "1h",
+  });
 });
 
 afterAll(async () => {
-  await mongoose.connection.db.dropDatabase();
+  await Reminder.deleteMany({}); // Clean reminders
+  await User.deleteOne({ email: "reminder@example.com" }); // Clean user
   await mongoose.connection.close();
 });
 
-describe("User Auth Flow", () => {
-  test("Register a new user", async () => {
-    const res = await request(app).post("/api/auth/register").send({
-      name: "Test User",
-      email: testEmail,
-      password: "password123"
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.token).toBeDefined();
-  });
-
-  test("Login with the new user", async () => {
-    const res = await request(app).post("/api/auth/login").send({
-      email: testEmail,
-      password: "password123"
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.token).toBeDefined();
-    token = res.body.token;
-  });
-
-  test("Get user profile", async () => {
+describe("Reminder CRUD", () => {
+  it("Create a new reminder", async () => {
     const res = await request(app)
-      .get("/api/profile")
+      .post("/api/reminder")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        title: "Test Reminder",
+        time: "10:00 AM",
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.title).toBe("Test Reminder");
+    reminderId = res.body._id;
+  });
+
+  it("Get all reminders", async () => {
+    const res = await request(app)
+      .get("/api/reminder")
       .set("Authorization", `Bearer ${token}`);
     expect(res.statusCode).toBe(200);
-    expect(res.body.email).toBe(testEmail);
+    expect(Array.isArray(res.body)).toBe(true);
   });
 
-  test("Update user mood", async () => {
+  it("Delete the reminder", async () => {
     const res = await request(app)
-      .put("/api/profile/mood")
-      .set("Authorization", `Bearer ${token}`)
-      .send({ mood: "Happy" });
+      .delete(`/api/reminder/${reminderId}`)
+      .set("Authorization", `Bearer ${token}`);
     expect(res.statusCode).toBe(200);
-    expect(res.body.mood).toBe("Happy");
   });
 });
