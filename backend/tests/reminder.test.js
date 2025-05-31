@@ -12,11 +12,12 @@ beforeAll(async () => {
     useUnifiedTopology: true,
   });
 
-  await User.deleteOne({ email: "reminder@example.com" }); // ✅ AFTER DB CONNECT
-  await Reminder.deleteMany({}); // Clean up reminders
+  await User.deleteOne({ email: "reminder@example.com" }); // ✅ Needs DB first
+  await Reminder.deleteMany({});
 
+  // ✅ Register and log in a user to get token
   await request(app).post("/api/auth/register").send({
-    name: "Test User",
+    name: "Reminder Tester",
     email: "reminder@example.com",
     password: "password123",
   });
@@ -30,7 +31,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
+  await mongoose.connection.close();
 });
 
 describe("Reminder CRUD", () => {
