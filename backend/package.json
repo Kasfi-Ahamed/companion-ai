@@ -4,7 +4,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --coverage"
+    "test": "jest --runInBand --coverage"
   },
   "dependencies": {
     "bcryptjs": "2.4.3",

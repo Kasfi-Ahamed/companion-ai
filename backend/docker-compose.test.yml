@@ -1,33 +1,27 @@
-version: '3.8'
+version: "3.8"
+
 services:
+  backend:
+    build:
+      context: .
+    container_name: backend-1
+    environment:
+      - NODE_ENV=test
+    working_dir: /app/backend
+    command: npm run test
+    volumes:
+      - .:/app
+      - ./backend/.env.test:/app/backend/.env.test
+    depends_on:
+      - mongodb
+
   mongodb:
     image: mongo
     container_name: backend-mongodb-1
     ports:
       - "27017:27017"
-    networks:
-      - backend-net
     volumes:
       - mongo-data:/data/db
-
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: backend-1
-    networks:
-      - backend-net
-    depends_on:
-      - mongodb
-    environment:
-      - MONGO_URI=mongodb://backend-mongodb-1:27017/companion-ai
-      - JWT_SECRET=testsecret
-    volumes:
-      - .:/app
-    command: ["npm", "run", "test"]
-
-networks:
-  backend-net:
 
 volumes:
   mongo-data:
