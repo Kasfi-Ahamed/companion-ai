@@ -4,7 +4,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --runInBand --coverage"
+    "test": "jest --runInBand --coverage --verbose --detectOpenHandles"
   },
   "dependencies": {
     "bcryptjs": "2.4.3",
