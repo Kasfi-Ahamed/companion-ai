@@ -3,16 +3,18 @@ const mongoose = require("mongoose");
 const app = require("../app");
 const User = require("../models/User");
 
+jest.setTimeout(60000); // Extend timeout to 60s for Docker
+
 beforeAll(async () => {
   await mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
   });
-  await User.deleteOne({ email: "testuser@example.com" });
+
+  await mongoose.connection.dropDatabase(); // Clear DB
 });
 
 afterAll(async () => {
-  await User.deleteOne({ email: "testuser@example.com" });
   await mongoose.connection.close();
 });
 

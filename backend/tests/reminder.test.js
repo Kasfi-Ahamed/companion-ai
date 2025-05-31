@@ -2,9 +2,12 @@ const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../app");
 const Reminder = require("../models/Reminder");
-const User = require("../models/User"); // ✅ FIXED: Import User model
+const User = require("../models/User");
 
 let token;
+let reminderId;
+
+jest.setTimeout(60000); // Extend timeout to 60s for Docker
 
 beforeAll(async () => {
   await mongoose.connect(process.env.MONGO_URI, {
@@ -12,10 +15,10 @@ beforeAll(async () => {
     useUnifiedTopology: true,
   });
 
-  await User.deleteOne({ email: "reminder@example.com" }); // ✅ Needs DB first
-  await Reminder.deleteMany({});
+  // Clear the entire DB to avoid duplicates
+  await mongoose.connection.dropDatabase();
 
-  // ✅ Register and log in a user to get token
+  // Register and login to get token
   await request(app).post("/api/auth/register").send({
     name: "Reminder Tester",
     email: "reminder@example.com",
@@ -35,8 +38,6 @@ afterAll(async () => {
 });
 
 describe("Reminder CRUD", () => {
-  let reminderId;
-
   it("Create a new reminder", async () => {
     const res = await request(app)
       .post("/api/reminder")
