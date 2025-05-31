@@ -34,7 +34,7 @@ pipeline {
           bat 'docker ps -a'
           bat 'docker logs backend-1'
           echo '📄 Running tests inside container...'
-          bat 'docker exec backend-1 npm run test -- --coverage || exit 1'
+          bat 'docker exec backend-1 npm run test --coverage || exit 1'
         }
       }
     }
