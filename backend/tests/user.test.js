@@ -1,64 +1,40 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../app");
-const Reminder = require("../models/Reminder");
-const User = require("../models/User"); // ✅ FIXED MISSING IMPORT
-const jwt = require("jsonwebtoken");
-
-let token;
-let reminderId;
+const User = require("../models/User");
 
 beforeAll(async () => {
   await mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
+    useUnifiedTopology: true
   });
-
-  await User.deleteOne({ email: "reminder@example.com" });
-  const user = await User.create({
-    name: "Reminder Tester",
-    email: "reminder@example.com",
-    password: "testpass",
-  });
-
-  token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
-  });
+  await User.deleteOne({ email: "testuser@example.com" });
 });
 
 afterAll(async () => {
-  await Reminder.deleteMany({}); // Clean reminders
-  await User.deleteOne({ email: "reminder@example.com" }); // Clean user
+  await User.deleteOne({ email: "testuser@example.com" });
   await mongoose.connection.close();
 });
 
-describe("Reminder CRUD", () => {
-  it("Create a new reminder", async () => {
-    const res = await request(app)
-      .post("/api/reminder")
-      .set("Authorization", `Bearer ${token}`)
-      .send({
-        title: "Test Reminder",
-        time: "10:00 AM",
-      });
+describe("User Auth Flow", () => {
+  it("should register a new user", async () => {
+    const res = await request(app).post("/api/auth/register").send({
+      name: "Test User",
+      email: "testuser@example.com",
+      password: "123456"
+    });
 
     expect(res.statusCode).toBe(201);
-    expect(res.body.title).toBe("Test Reminder");
-    reminderId = res.body._id;
+    expect(res.body.token).toBeDefined();
   });
 
-  it("Get all reminders", async () => {
-    const res = await request(app)
-      .get("/api/reminder")
-      .set("Authorization", `Bearer ${token}`);
-    expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-  });
+  it("should log in the user", async () => {
+    const res = await request(app).post("/api/auth/login").send({
+      email: "testuser@example.com",
+      password: "123456"
+    });
 
-  it("Delete the reminder", async () => {
-    const res = await request(app)
-      .delete(`/api/reminder/${reminderId}`)
-      .set("Authorization", `Bearer ${token}`);
     expect(res.statusCode).toBe(200);
+    expect(res.body.token).toBeDefined();
   });
 });
