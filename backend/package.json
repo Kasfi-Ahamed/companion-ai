@@ -4,7 +4,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --coverage"
+    "test": "jest --coverage --forceExit --detectOpenHandles"
   },
   "dependencies": {
     "bcryptjs": "2.4.3",
@@ -17,5 +17,15 @@
   "devDependencies": {
     "jest": "29.7.0",
     "supertest": "6.3.3"
+  },
+  "jest": {
+    "setupFiles": ["./jest.setup.js"],
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "app/**/*.js",
+      "!app/**/index.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov"]
   }
 }
