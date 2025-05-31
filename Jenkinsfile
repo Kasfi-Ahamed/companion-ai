@@ -30,7 +30,7 @@ pipeline {
           bat 'docker-compose -f backend/docker-compose.test.yml up -d'
 
           echo "⏱ Waiting for MongoDB to be ready..."
-          bat 'timeout /t 15 > nul'
+          bat 'ping 127.0.0.1 -n 15 > nul'
 
           echo "🚀 Running tests with coverage..."
           bat 'docker-compose -f backend/docker-compose.test.yml run --rm backend npm run test -- --coverage'
