@@ -2,7 +2,8 @@ pipeline {
   agent any
 
   environment {
-    MONGO_URI = 'mongodb://mongodb:27017/companion-ai'
+    MONGO_URI = 'mongodb://localhost:27017/companion-ai'
+    JWT_SECRET = 'testsecret'
   }
 
   stages {
@@ -27,15 +28,13 @@ pipeline {
           bat 'docker-compose -f backend/docker-compose.test.yml down -v || exit 0'
           bat 'docker-compose -f backend/docker-compose.test.yml build --no-cache'
           bat 'docker-compose -f backend/docker-compose.test.yml up -d'
-          
           echo '⏱ Waiting for MongoDB to be ready...'
-          bat 'ping 127.0.0.1 -n 15 > nul'
-
-          echo '📄 Verifying test file inside container...'
-          bat 'docker exec backend-backend-1 cat tests/reminder.test.js || echo "❌ File not found"'
-
-          echo '🚀 Running tests with coverage...'
-          bat 'docker-compose -f backend/docker-compose.test.yml run --rm backend npm run test -- --coverage'
+          bat 'ping 127.0.0.1 -n 15 >nul'
+          echo '📄 Verifying backend container is up...'
+          bat 'docker ps -a'
+          bat 'docker logs backend-backend-1'
+          echo '📄 Running tests inside container...'
+          bat 'docker exec backend-backend-1 npm run test -- --coverage || exit 1'
         }
       }
     }
@@ -44,36 +43,31 @@ pipeline {
       steps {
         dir('backend') {
           bat 'npm audit --json > audit-report.json || exit 0'
-          echo '📋 Security audit complete. Review audit-report.json.'
         }
       }
     }
 
     stage('Code Quality') {
       steps {
-        echo '🔍 Running SonarQube (assumes container exists)...'
-        bat 'echo "TODO: Add SonarQube scan here"'
+        echo '🧪 Skipping SonarQube for now.'
       }
     }
 
     stage('Deployment') {
-      when {
-        expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
-      }
       steps {
-        echo '🚀 Skipping deployment in test pipeline...'
+        echo '🚀 Deployment would go here.'
       }
     }
 
     stage('Release') {
       steps {
-        echo '📦 Release stage (skipped in local runs)'
+        echo '📦 Packaging for release.'
       }
     }
 
     stage('Monitoring') {
       steps {
-        echo '📊 Monitoring stage (Prometheus or other)'
+        echo '📈 Prometheus/Grafana Monitoring Placeholder'
       }
     }
   }
@@ -90,7 +84,7 @@ pipeline {
     }
 
     success {
-      echo '✅ Pipeline completed successfully!'
+      echo '✅ Pipeline completed successfully.'
     }
   }
 }
