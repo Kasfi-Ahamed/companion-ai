@@ -25,16 +25,16 @@ pipeline {
       steps {
         script {
           echo '🧪 Starting MongoDB & App containers for tests...'
-          bat 'docker-compose -f backend/docker-compose.test.yml down -v || exit 0'
-          bat 'docker-compose -f backend/docker-compose.test.yml build --no-cache'
+          
+          
           bat 'docker-compose -f backend/docker-compose.test.yml up -d'
           echo '⏱ Waiting for MongoDB to be ready...'
           bat 'ping 127.0.0.1 -n 15 >nul'
           echo '📄 Verifying backend container is up...'
           bat 'docker ps -a'
-          bat 'docker logs backend-backend-1'
+          bat 'docker logs backend-1'
           echo '📄 Running tests inside container...'
-          bat 'docker exec backend-backend-1 npm run test -- --coverage || exit 1'
+          bat 'docker exec backend-1 npm run test -- --coverage || exit 1'
         }
       }
     }

@@ -14,7 +14,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: backend-backend-1
+    container_name: backend-1
     networks:
       - backend-net
     depends_on:

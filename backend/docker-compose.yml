@@ -10,7 +10,7 @@ services:
   backend:
     build:
       context: .
-    container_name: backend-backend-1
+    container_name: backend-1
     environment:
       - MONGO_URI=mongodb://mongodb:27017/companion-ai-test
       - JWT_SECRET=testsecretkey123
