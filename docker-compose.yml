@@ -24,3 +24,5 @@ services:
       - "5000:5000"
     command: >
       sh -c "npm install && node server.js"
+    volumes:
+      - ./coverage:/app/coverage

@@ -2,7 +2,6 @@ pipeline {
   agent any
 
   environment {
-    SONAR_TOKEN = credentials('sonarqube-token')
     SONAR_HOST_URL = 'http://localhost:9000'
   }
 
@@ -24,14 +23,14 @@ pipeline {
     stage('Test') {
       steps {
         dir('backend') {
-          echo "🧪 Starting MongoDB and Backend using docker-compose..."
+          echo '🧪 Starting MongoDB and Backend using docker-compose...'
           bat 'docker-compose down -v || exit 0'
           bat 'docker-compose up -d'
 
-          echo "⏳ Waiting for MongoDB container to be healthy..."
+          echo '⏳ Waiting for MongoDB container to be healthy...'
           bat 'ping -n 20 127.0.0.1 >nul'
 
-          echo "🚀 Running tests inside the backend container..."
+          echo '🚀 Running tests inside the backend container...'
           bat 'docker-compose exec -T backend npm run test -- --coverage'
         }
       }
@@ -50,26 +49,35 @@ pipeline {
       steps {
         dir('backend') {
           echo '📊 Running SonarScanner...'
-          bat "sonar-scanner.bat -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.login=%SONAR_TOKEN%"
+          withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            bat '''
+              sonar-scanner.bat ^
+                -Dsonar.projectKey=companion-ai ^
+                -Dsonar.sources=. ^
+                -Dsonar.host.url=%SONAR_HOST_URL% ^
+                -Dsonar.token=%SONAR_TOKEN% ^
+                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            '''
+          }
         }
       }
     }
 
     stage('Deployment') {
       steps {
-        echo "🚀 Deployment stage placeholder..."
+        echo '🚀 Deployment stage placeholder...'
       }
     }
 
     stage('Release') {
       steps {
-        echo "📦 Release stage placeholder..."
+        echo '📦 Release stage placeholder...'
       }
     }
 
     stage('Monitoring') {
       steps {
-        echo "📈 Monitoring stage placeholder..."
+        echo '📈 Monitoring stage placeholder...'
       }
     }
 
@@ -84,13 +92,10 @@ pipeline {
 
   post {
     always {
-      echo "🧹 Cleaning up..."
+      echo '🧹 Cleaning up...'
       dir('backend') {
         bat 'docker-compose down -v || exit 0'
       }
-    }
-    failure {
-      echo "❌ Pipeline failed. Check logs for details."
     }
   }
 }
