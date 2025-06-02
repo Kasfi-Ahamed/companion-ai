@@ -36,7 +36,7 @@ pipeline {
             echo '⏳ Waiting for MongoDB container to be healthy...'
             bat 'ping -n 20 127.0.0.1 >nul'
             echo '🚀 Running tests inside the backend container...'
-            bat 'docker-compose exec -T backend npx jest tests/*.test.js --runInBand --forceExit --detectOpenHandles --coverage'
+            bat 'docker-compose exec -T backend npm run test -- --coverage'
           }
         }
       }
