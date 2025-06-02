@@ -44,7 +44,7 @@ pipeline {
     stage('Code Quality') {
       steps {
         dir('backend') {
-          withSonarQubeEnv('LocalSonarQube') {
+          withSonarQubeEnv('SonarScanner') {
             bat """
               ${SONAR_SCANNER_HOME}/bin/sonar-scanner.bat ^
               -Dsonar.projectKey=companion-ai ^
