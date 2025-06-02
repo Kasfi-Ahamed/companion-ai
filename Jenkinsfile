@@ -2,89 +2,102 @@ pipeline {
   agent any
 
   environment {
-    MONGO_URI = 'mongodb://mongo:27017/companion-ai-test'
-    SONAR_HOST_URL = 'http://localhost:9000' // change if using remote SonarQube
-    SONAR_SCANNER_HOME = tool 'sonarqube-token'
+    MONGO_URI = "mongodb://mongo:27017/companion-ai"
+    NODE_ENV = 'test'
+  }
+
+  tools {
+    nodejs 'NodeJS' // Ensure you have a NodeJS tool in Jenkins global tools config
+    // Optional: you may define this in global tools if you need node/npm toolchain
   }
 
   stages {
+
     stage('Checkout SCM') {
       steps {
-        git branch: 'main', url: 'https://github.com/Kasfi-Ahamed/companion-ai.git'
+        checkout scm
       }
     }
 
     stage('Build') {
       steps {
-        echo '✅ Starting Build Stage...'
-        bat 'docker-compose -f docker-compose.yml up -d --build'
+        dir('backend') {
+          bat 'npm install'
+        }
       }
     }
 
     stage('Test') {
       steps {
-        echo '🧪 Running Jest tests...'
-        bat '''
-          docker exec backend npm test
-        '''
+        dir('backend') {
+          bat 'docker-compose down -v || exit 0'
+          bat 'docker-compose up -d'
+          bat 'timeout /T 20'
+          bat 'npm run test -- --coverage'
+        }
       }
     }
 
     stage('Security') {
       steps {
-        echo '🔐 Running npm audit for vulnerabilities...'
-        bat '''
-          docker exec backend npm audit --json > audit-report.json || exit 0
-          echo Completed security audit.
-        '''
+        dir('backend') {
+          bat '''
+            echo Running npm audit...
+            npm audit --json > audit-report.json || exit 0
+          '''
+        }
       }
     }
 
     stage('Code Quality') {
       steps {
-        echo '📊 Running SonarQube Analysis...'
-        withSonarQubeEnv('MySonarQube') {
-          bat """
-            cd backend
-            ${env.SONAR_SCANNER_HOME}\\bin\\sonar-scanner.bat ^
-              -Dsonar.projectKey=companion-ai ^
-              -Dsonar.sources=. ^
-              -Dsonar.host.url=${env.SONAR_HOST_URL} ^
-              -Dsonar.login=${SONAR_TOKEN}
-          """
+        withSonarQubeEnv('LocalSonarQube') {
+          dir('backend') {
+            bat 'sonar-scanner.bat -Dsonar.projectKey=companion-ai -Dsonar.sources=./ -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info'
+          }
         }
       }
     }
 
-    stage('Deploy') {
+    stage('Deployment') {
       steps {
-        echo '🚀 Deploying Backend Server...'
-        bat 'docker exec -d backend npm start'
+        echo "✅ Deployment logic would go here. Skipped for now."
       }
     }
 
     stage('Release') {
       steps {
-        echo '📦 Release complete.'
+        echo "📦 Tagging and releasing skipped in local pipeline."
       }
     }
 
     stage('Monitoring') {
       steps {
-        echo '📡 Prometheus and Docker stats running.'
-        bat 'docker ps'
+        echo "📈 Prometheus/Grafana monitoring (handled externally)."
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 1, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
       }
     }
   }
 
   post {
     always {
-      echo '🧹 Cleaning up...'
-      bat 'docker-compose -f docker-compose.yml down -v'
+      echo "🧹 Cleaning up..."
+      dir('backend') {
+        bat 'docker-compose down -v || exit 0'
+      }
     }
+
     success {
-      echo '✅ Pipeline succeeded!'
+      echo '✅ Pipeline completed successfully!'
     }
+
     failure {
       echo '❌ Pipeline failed. Check logs for details.'
     }
