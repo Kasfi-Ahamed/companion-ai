@@ -2,17 +2,11 @@ pipeline {
   agent any
 
   environment {
-    MONGO_URI = "mongodb://mongo:27017/companion-ai"
-    NODE_ENV = 'test'
-  }
-
-  tools {
-    nodejs 'NodeJS' // Ensure you have a NodeJS tool in Jenkins global tools config
-    // Optional: you may define this in global tools if you need node/npm toolchain
+    SONAR_TOKEN = credentials('sonar-token')
+    SONAR_HOST_URL = 'http://localhost:9000'
   }
 
   stages {
-
     stage('Checkout SCM') {
       steps {
         checkout scm
@@ -30,10 +24,15 @@ pipeline {
     stage('Test') {
       steps {
         dir('backend') {
+          echo "🧪 Starting MongoDB and Backend using docker-compose..."
           bat 'docker-compose down -v || exit 0'
           bat 'docker-compose up -d'
-          bat 'ping -n 20 127.0.0.1 > nul'
-          bat 'npm run test -- --coverage'
+
+          echo "⏳ Waiting for MongoDB container to be healthy..."
+          bat 'ping -n 20 127.0.0.1 >nul'
+
+          echo "🚀 Running tests inside the backend container..."
+          bat 'docker-compose exec -T backend npm run test -- --coverage'
         }
       }
     }
@@ -41,39 +40,36 @@ pipeline {
     stage('Security') {
       steps {
         dir('backend') {
-          bat '''
-            echo Running npm audit...
-            npm audit --json > audit-report.json || exit 0
-          '''
+          echo '🔐 Running security audit...'
+          bat 'npm audit --json > audit-report.json || exit 0'
         }
       }
     }
 
     stage('Code Quality') {
       steps {
-        withSonarQubeEnv('LocalSonarQube') {
-          dir('backend') {
-            bat 'sonar-scanner.bat -Dsonar.projectKey=companion-ai -Dsonar.sources=./ -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info'
-          }
+        dir('backend') {
+          echo '📊 Running SonarScanner...'
+          bat "sonar-scanner.bat -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.login=%SONAR_TOKEN%"
         }
       }
     }
 
     stage('Deployment') {
       steps {
-        echo "✅ Deployment logic would go here. Skipped for now."
+        echo "🚀 Deployment stage placeholder..."
       }
     }
 
     stage('Release') {
       steps {
-        echo "📦 Tagging and releasing skipped in local pipeline."
+        echo "📦 Release stage placeholder..."
       }
     }
 
     stage('Monitoring') {
       steps {
-        echo "📈 Prometheus/Grafana monitoring (handled externally)."
+        echo "📈 Monitoring stage placeholder..."
       }
     }
 
@@ -93,13 +89,8 @@ pipeline {
         bat 'docker-compose down -v || exit 0'
       }
     }
-
-    success {
-      echo '✅ Pipeline completed successfully!'
-    }
-
     failure {
-      echo '❌ Pipeline failed. Check logs for details.'
+      echo "❌ Pipeline failed. Check logs for details."
     }
   }
 }
