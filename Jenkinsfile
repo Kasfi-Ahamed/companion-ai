@@ -32,7 +32,7 @@ pipeline {
         dir('backend') {
           bat 'docker-compose down -v || exit 0'
           bat 'docker-compose up -d'
-          bat 'timeout /T 20'
+          bat 'ping -n 20 127.0.0.1 > nul'
           bat 'npm run test -- --coverage'
         }
       }
