@@ -2,13 +2,15 @@ pipeline {
   agent any
 
   environment {
-    SONAR_HOST_URL = 'http://localhost:9000'
+    MONGO_URI = 'mongodb://mongo:27017/companion-ai-test'
+    SONAR_SCANNER_HOME = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
   }
 
   stages {
+
     stage('Checkout SCM') {
       steps {
-        checkout scm
+        git branch: 'main', url: 'https://github.com/Kasfi-Ahamed/companion-ai.git'
       }
     }
 
@@ -28,7 +30,7 @@ pipeline {
           bat 'docker-compose up -d'
 
           echo '⏳ Waiting for MongoDB container to be healthy...'
-          bat 'ping -n 20 127.0.0.1 >nul'
+          bat 'ping -n 20 127.0.0.1 > nul'
 
           echo '🚀 Running tests inside the backend container...'
           bat 'docker-compose exec -T backend npm run test -- --coverage'
@@ -49,15 +51,15 @@ pipeline {
       steps {
         dir('backend') {
           echo '📊 Running SonarScanner...'
-          withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-            bat '''
-              sonar-scanner.bat ^
-                -Dsonar.projectKey=companion-ai ^
-                -Dsonar.sources=. ^
-                -Dsonar.host.url=%SONAR_HOST_URL% ^
-                -Dsonar.token=%sonarqube-token% ^
-                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            '''
+          withSonarQubeEnv('LocalSonarQube') {
+            bat """
+              ${SONAR_SCANNER_HOME}/bin/sonar-scanner.bat ^
+              -Dsonar.projectKey=companion-ai ^
+              -Dsonar.sources=. ^
+              -Dsonar.host.url=http://localhost:9000 ^
+              -Dsonar.login=%SONAR_TOKEN% ^
+              -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            """
           }
         }
       }
@@ -96,6 +98,9 @@ pipeline {
       dir('backend') {
         bat 'docker-compose down -v || exit 0'
       }
+    }
+    failure {
+      echo '❌ Pipeline failed. Check logs for details.'
     }
   }
 }
