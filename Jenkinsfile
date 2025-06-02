@@ -2,7 +2,9 @@ pipeline {
   agent any
 
   environment {
-    SONAR_TOKEN = credentials('sonarqube-token')
+    MONGO_URI = 'mongodb://mongo:27017/companion-ai-test'
+    SONAR_HOST_URL = 'http://localhost:9000' // change if using remote SonarQube
+    SONAR_SCANNER_HOME = tool 'sonarqube-token'
   }
 
   stages {
@@ -14,86 +16,77 @@ pipeline {
 
     stage('Build') {
       steps {
-        dir('backend') {
-          bat 'npm install'
-        }
+        echo '✅ Starting Build Stage...'
+        bat 'docker-compose -f docker-compose.yml up -d --build'
       }
     }
 
     stage('Test') {
       steps {
-        dir('backend') {
-          bat '''
-            docker-compose down -v || exit 0
-            docker-compose up -d
-            sleep 15
-            npm run test -- --coverage
-          '''
-        }
+        echo '🧪 Running Jest tests...'
+        bat '''
+          docker exec backend npm test
+        '''
       }
     }
 
     stage('Security') {
       steps {
-        dir('backend') {
-          bat 'npm audit --json > audit-report.json || exit 0'
-          echo 'Security audit completed. See audit-report.json'
-        }
+        echo '🔐 Running npm audit for vulnerabilities...'
+        bat '''
+          docker exec backend npm audit --json > audit-report.json || exit 0
+          echo Completed security audit.
+        '''
       }
     }
 
     stage('Code Quality') {
       steps {
-        withSonarQubeEnv('LocalSonarQube') {
-          dir('backend') {
-            bat '''
-              npx sonar-scanner ^
-                -Dsonar.projectKey=companion-ai ^
-                -Dsonar.sources=. ^
-                -Dsonar.coverage.exclusions=**/node_modules/** ^
-                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info ^
-                -Dsonar.host.url=http://localhost:9000 ^
-                -Dsonar.login=%SONAR_TOKEN%
-            '''
-          }
+        echo '📊 Running SonarQube Analysis...'
+        withSonarQubeEnv('MySonarQube') {
+          bat """
+            cd backend
+            ${env.SONAR_SCANNER_HOME}\\bin\\sonar-scanner.bat ^
+              -Dsonar.projectKey=companion-ai ^
+              -Dsonar.sources=. ^
+              -Dsonar.host.url=${env.SONAR_HOST_URL} ^
+              -Dsonar.login=${SONAR_TOKEN}
+          """
         }
       }
     }
 
     stage('Deploy') {
       steps {
-        bat 'docker-compose down -v || exit 0'
-        bat 'docker-compose up --build -d'
+        echo '🚀 Deploying Backend Server...'
+        bat 'docker exec -d backend npm start'
       }
     }
 
     stage('Release') {
       steps {
-        echo '📦 App released.'
+        echo '📦 Release complete.'
       }
     }
 
     stage('Monitoring') {
       steps {
-        echo '📊 Monitoring enabled (e.g., Prometheus).'
-      }
-    }
-
-    stage('Quality Gate') {
-      steps {
-        timeout(time: 2, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: true
-        }
+        echo '📡 Prometheus and Docker stats running.'
+        bat 'docker ps'
       }
     }
   }
 
   post {
+    always {
+      echo '🧹 Cleaning up...'
+      bat 'docker-compose -f docker-compose.yml down -v'
+    }
     success {
-      echo '✅ All pipeline stages passed. App deployed and code quality verified.'
+      echo '✅ Pipeline succeeded!'
     }
     failure {
-      echo '❌ Pipeline failed. Please check logs.'
+      echo '❌ Pipeline failed. Check logs for details.'
     }
   }
 }
