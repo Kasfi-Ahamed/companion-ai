@@ -1,14 +1,9 @@
 #!/bin/sh
-
-# wait-for-mongo.sh
-host="$1"
-shift
-cmd="$@"
-
-until nc -z $host 27017; do
-  >&2 echo "⏳ MongoDB is unavailable - sleeping"
-  sleep 1
+# Wait until MongoDB is available
+until nc -z mongo 27017; do
+  echo "⏳ Waiting for MongoDB..."
+  sleep 2
 done
 
->&2 echo "✅ MongoDB is up - executing command"
-exec $cmd
+echo "✅ MongoDB is up!"
+exec "$@"

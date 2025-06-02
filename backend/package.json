@@ -1,7 +1,7 @@
 {
   "name": "companion-ai-backend",
   "version": "1.0.0",
-  "description": "Backend for CompanionAI project",
+  "description": "CompanionAI Backend Server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,13 +13,17 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.19.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.4",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^7.6.1"
+    "mongoose": "^8.3.5"
   },
   "devDependencies": {
     "jest": "^29.7.0",
     "supertest": "^6.3.3"
+  },
+  "jest": {
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "testEnvironment": "node"
   }
 }

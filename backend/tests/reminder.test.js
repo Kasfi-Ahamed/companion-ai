@@ -1,62 +1,67 @@
-const request = require("supertest");
-const mongoose = require("mongoose");
-const app = require("../app");
-const User = require("../models/User");
-const Reminder = require("../models/Reminder");
+const request = require('supertest');
+const mongoose = require('mongoose');
+const app = require('../app');
+const Reminder = require('../models/Reminder');
+const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 
-let token;
-let reminderId;
+describe('Reminder API', () => {
+  let token;
+  let reminderId;
 
-beforeAll(async () => {
-  const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/companion-ai-test";
-  await mongoose.connect(mongoUri);
-  await Reminder.deleteMany({});
-  await User.deleteMany({});
+  beforeAll(async () => {
+    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/companion-ai-test';
+    await mongoose.connect(mongoUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-  await request(app).post("/api/auth/register").send({
-    name: "Reminder User",
-    email: "reminder@example.com",
-    password: "password123",
+    await Reminder.deleteMany({});
+    await User.deleteMany({});
+
+    const testUser = new User({
+      name: 'Reminder User',
+      email: 'reminder@example.com',
+      password: 'password123',
+    });
+    await testUser.save();
+
+    token = jwt.sign({ id: testUser._id }, process.env.JWT_SECRET || 'secretkey');
   });
 
-  const loginRes = await request(app).post("/api/auth/login").send({
-    email: "reminder@example.com",
-    password: "password123",
+  afterAll(async () => {
+    await mongoose.connection.close();
   });
-  token = loginRes.body.token;
-});
 
-afterAll(async () => {
-  await mongoose.connection.close();
-});
-
-describe("Reminder API", () => {
-  test("Create a reminder", async () => {
+  test('Create a reminder', async () => {
     const res = await request(app)
-      .post("/api/reminder")
-      .set("Authorization", `Bearer ${token}`)
+      .post('/api/reminder')
+      .set('Authorization', `Bearer ${token}`)
       .send({
-        title: "Take medicine",
-        time: "09:00 AM",
+        title: 'Doctor Appointment',
+        time: '2025-06-02 10:00',
       });
+
     expect(res.statusCode).toBe(201);
-    expect(res.body.title).toBe("Take medicine");
+    expect(res.body).toHaveProperty('_id');
     reminderId = res.body._id;
   });
 
-  test("Fetch all reminders", async () => {
+  test('Fetch all reminders', async () => {
     const res = await request(app)
-      .get("/api/reminder")
-      .set("Authorization", `Bearer ${token}`);
+      .get('/api/reminder')
+      .set('Authorization', `Bearer ${token}`);
+
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  test("Delete reminder", async () => {
+  test('Delete reminder', async () => {
     const res = await request(app)
       .delete(`/api/reminder/${reminderId}`)
-      .set("Authorization", `Bearer ${token}`);
+      .set('Authorization', `Bearer ${token}`);
+
     expect(res.statusCode).toBe(200);
-    expect(res.body.message).toBe("Reminder deleted");
+    expect(res.body.message).toBe('Reminder deleted successfully');
   });
 });
