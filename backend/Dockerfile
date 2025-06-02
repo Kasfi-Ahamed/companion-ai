@@ -1,18 +1,21 @@
-# Use official Node image
+# backend/Dockerfile
 FROM node:18
 
 # Set working directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy package files and install dependencies
+# Install app dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the code
+# Copy the rest of the app
 COPY . .
+
+# Make wait-for script executable
+RUN chmod +x wait-for-mongo.sh
 
 # Expose backend port
 EXPOSE 5000
 
 # Start server
-CMD ["npm", "start"]
+CMD ["./wait-for-mongo.sh", "mongo", "node", "server.js"]

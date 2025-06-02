@@ -1,27 +1,25 @@
+# backend/docker-compose.yml
 version: '3.8'
 
 services:
   mongo:
     image: mongo
-    container_name: mongodb
+    container_name: mongo
     ports:
       - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    build: ./backend
-    container_name: companion-backend
+    build: .
+    container_name: backend
     ports:
       - "5000:5000"
     environment:
       - MONGO_URI=mongodb://mongo:27017/companion-ai
-      - JWT_SECRET=supersecretkey123
     depends_on:
-      - mongo
-    volumes:
-      - ./backend:/app
-    restart: always
-
-volumes:
-  mongo-data:
+      mongo:
+        condition: service_healthy

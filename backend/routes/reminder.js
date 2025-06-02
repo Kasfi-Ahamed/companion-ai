@@ -1,24 +1,39 @@
-const express = require('express');
-const Reminder = require('../models/Reminder');
-const protect = require('../middleware/auth');
+const express = require("express");
+const Reminder = require("../models/Reminder");
+const protect = require("../middleware/auth");
 
 const router = express.Router();
 
-// Create reminder
-router.post('/', protect, async (req, res) => {
-  const { text, time } = req.body;
-  const reminder = await Reminder.create({
-    user: req.user.id,
-    text,
-    time
-  });
-  res.status(201).json(reminder);
+// Get all reminders for the user
+router.get("/", protect, async (req, res) => {
+  try {
+    const reminders = await Reminder.find({ user: req.user._id });
+    res.status(200).json(reminders);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching reminders" });
+  }
 });
 
-// Get reminders
-router.get('/', protect, async (req, res) => {
-  const reminders = await Reminder.find({ user: req.user.id });
-  res.json(reminders);
+// Add a new reminder
+router.post("/", protect, async (req, res) => {
+  try {
+    const { title, time } = req.body;
+    const reminder = new Reminder({ user: req.user._id, title, time });
+    await reminder.save();
+    res.status(201).json(reminder);
+  } catch (err) {
+    res.status(500).json({ message: "Error creating reminder" });
+  }
+});
+
+// Delete a reminder
+router.delete("/:id", protect, async (req, res) => {
+  try {
+    await Reminder.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Reminder deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting reminder" });
+  }
 });
 
 module.exports = router;

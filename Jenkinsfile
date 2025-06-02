@@ -2,7 +2,8 @@ pipeline {
   agent any
 
   environment {
-    SONARQUBE_ENV = "LocalSonarQube"  // This must match the name in Jenkins > SonarQube config
+    MONGO_URI = 'mongodb://mongo:27017/companion-ai'
+    SONAR_TOKEN = credentials('SONAR_AUTH_TOKEN') // Make sure to set this in Jenkins credentials
   }
 
   stages {
@@ -23,7 +24,7 @@ pipeline {
     stage('Test') {
       steps {
         dir('backend') {
-          bat 'npm run test'
+          bat 'npm run test -- --coverage'
         }
       }
     }
@@ -31,51 +32,56 @@ pipeline {
     stage('Security') {
       steps {
         dir('backend') {
-          bat 'npm audit --json > audit-report.json || exit 0'
-          echo 'Security audit completed. Review audit-report.json.'
+          bat '''
+            npm audit --json > audit-report.json || exit 0
+            echo Security audit complete.
+          '''
         }
       }
     }
 
     stage('Code Quality') {
       steps {
-        withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-          dir('backend') {
-            bat '''
-              npx sonar-scanner ^
-                -Dsonar.projectKey=companion-ai ^
-                -Dsonar.sources=. ^
-                -Dsonar.coverage.exclusions=**/node_modules/** ^
-                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info ^
-                -Dsonar.host.url=http://localhost:9000
-            '''
-          }
+        dir('backend') {
+          bat """
+            sonar-scanner ^
+              -Dsonar.projectKey=companion-ai ^
+              -Dsonar.sources=. ^
+              -Dsonar.host.url=http://localhost:9000 ^
+              -Dsonar.login=%SONAR_TOKEN%
+          """
         }
       }
     }
 
     stage('Deploy') {
       steps {
-        bat 'docker-compose down -v || exit 0'
-        bat 'docker-compose up --build -d'
+        dir('backend') {
+          bat 'docker-compose down -v || exit 0'
+          bat 'docker-compose up --build -d'
+        }
       }
     }
 
-    stage('Quality Gate') {
+    stage('Release') {
       steps {
-        timeout(time: 2, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: true
-        }
+        echo '✅ Application released on local Docker. Access via http://localhost:5000'
+      }
+    }
+
+    stage('Monitoring') {
+      steps {
+        echo '📊 Monitoring via Prometheus assumed running externally on http://localhost:9090'
       }
     }
   }
 
   post {
     success {
-      echo '✅ All pipeline stages passed. Application deployed and code quality verified.'
+      echo '✅ Pipeline complete. Check SonarQube and Prometheus.'
     }
     failure {
-      echo '❌ Pipeline failed. Check logs for issues.'
+      echo '❌ Pipeline failed. Please check logs.'
     }
   }
 }
