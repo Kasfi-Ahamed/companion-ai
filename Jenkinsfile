@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     MONGO_URI = 'mongodb://mongo:27017/companion-ai'
-    SONAR_TOKEN = credentials('SONAR_AUTH_TOKEN') // Make sure to set this in Jenkins credentials
+    SONAR_TOKEN = credentials('sonarqube-token') // Make sure to set this in Jenkins credentials
   }
 
   stages {
