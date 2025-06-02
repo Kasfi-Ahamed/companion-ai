@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Set Reminder - CompanionAI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="auth-container">
+    <h1>Add a New Reminder</h1>
+    <form id="reminderForm">
+      <label for="text">Reminder Description</label>
+      <input type="text" id="text" placeholder="e.g., Take blood pressure meds" required />
+
+      <label for="time">Time</label>
+      <input type="time" id="time" required />
+
+      <button type="submit" class="btn">➕ Add Reminder</button>
+    </form>
+    <p id="reminderMessage" class="emergency-text"></p>
+    <button class="btn btn-secondary" style="margin-top: 15px;" onclick="window.location.href='index.html'">⬅️ Back to Home</button>
+  </main>
+
+  <script>
+    document.getElementById('reminderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const token = localStorage.getItem('token');
+      const text = document.getElementById('text').value;
+      const time = document.getElementById('time').value;
+
+      const res = await fetch('http://localhost:5000/api/reminder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ text, time })
+      });
+
+      const msg = document.getElementById('reminderMessage');
+      if (res.ok) {
+        msg.textContent = '✅ Reminder added successfully!';
+        msg.style.color = 'green';
+        document.getElementById('reminderForm').reset();
+      } else {
+        msg.textContent = '❌ Failed to add reminder.';
+        msg.style.color = '#e74c3c';
+      }
+      msg.style.display = 'block';
+    });
+  </script>
+</body>
+</html>

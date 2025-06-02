@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CompanionAI - Home</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Hi Kasfi, I’m <span class="ai-name">CompanionAI</span></h1>
+    <p class="subtitle">How can I assist you today?</p>
+    <button class="btn logout-btn" onclick="logout()">Logout</button>
+  </header>
+
+  <main>
+    <section class="mood-check">
+      <h2>Mood Check-In</h2>
+      <label for="mood">Select your mood:</label>
+      <select id="mood" onchange="updateMood()">
+        <option>Calm</option>
+        <option>Happy</option>
+        <option>Sad</option>
+        <option>Anxious</option>
+        <option>Lonely</option>
+      </select>
+      <p>Your mood: <strong id="selectedMood">Calm</strong></p>
+    </section>
+
+    <section class="daily-schedule">
+      <h2>Your Day at a Glance</h2>
+      <ul>
+        <li><strong>9:00 AM:</strong> Take morning medicine</li>
+        <li><strong>11:00 AM:</strong> Walk in garden</li>
+        <li><strong>12:30 PM:</strong> Call with daughter</li>
+        <li><strong>3:00 PM:</strong> Doctor appointment</li>
+        <li><strong>7:00 PM:</strong> Evening meditation</li>
+      </ul>
+    </section>
+
+    <section class="reminders">
+      <h2>Reminders</h2>
+      <ul id="reminderList">
+        <li>Loading reminders...</li>
+      </ul>
+      <button class="btn mark-done">Mark All as Done</button>
+      <button class="btn btn-secondary" onclick="window.location.href='reminder.html'">➕ Add Reminder</button>
+    </section>
+
+    <section class="emergency">
+      <button class="btn emergency-btn">🚨 Emergency</button>
+      <p class="emergency-text">“Alert Sent to Caregiver. Help is on the way. Please remain calm.”</p>
+    </section>
+
+    <section class="profile">
+      <button class="btn" onclick="window.location.href='profile.html'">🧑 Edit Profile</button>
+      <button class="btn chat-entry-btn" onclick="window.location.href='chat.html'">💬 I need someone to talk to</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 CompanionAI</p>
+  </footer>
+
+  <script>
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
+    function updateMood() {
+      const mood = document.getElementById("mood").value;
+      document.getElementById("selectedMood").textContent = mood;
+    }
+
+    async function loadReminders() {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch('http://localhost:5000/api/reminder', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const reminderList = document.getElementById('reminderList');
+        reminderList.innerHTML = '';
+
+        if (res.ok) {
+          const reminders = await res.json();
+          if (reminders.length === 0) {
+            reminderList.innerHTML = '<li>No reminders found.</li>';
+          } else {
+            reminders.forEach(reminder => {
+              const li = document.createElement('li');
+              li.innerHTML = `<strong>${reminder.time}</strong>: ${reminder.text}`;
+              reminderList.appendChild(li);
+            });
+          }
+        } else {
+          reminderList.innerHTML = '<li>Failed to load reminders.</li>';
+        }
+      } catch (err) {
+        document.getElementById('reminderList').innerHTML = '<li>Error fetching reminders.</li>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadReminders();
+
+      document.querySelector('.mark-done').addEventListener('click', () => {
+        const reminders = document.querySelectorAll('#reminderList li');
+        reminders.forEach(r => r.style.textDecoration = 'line-through');
+        alert('All reminders marked as done!');
+      });
+
+      document.querySelector('.emergency-btn').addEventListener('click', () => {
+        const emergencyText = document.querySelector('.emergency-text');
+        emergencyText.style.display = 'block';
+        emergencyText.textContent = '🚨 Alert Sent to Caregiver. Help is on the way. Please remain calm.';
+        document.body.style.border = '5px solid red';
+        setTimeout(() => {
+          document.body.style.border = 'none';
+        }, 3000);
+      });
+    });
+  </script>
+</body>
+</html>

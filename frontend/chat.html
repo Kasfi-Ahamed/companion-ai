@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat - CompanionAI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="auth-container">
+    <h1>Talk to CompanionAI</h1>
+    <div class="chat-box" id="chatBox">
+      <div class="bot-msg">Hi! I’m here to chat or listen whenever you need ❤️</div>
+    </div>
+    <input type="text" id="chatInput" placeholder="Say something..." />
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+      <button class="btn" onclick="sendMessage()">Send</button>
+      <button class="btn" onclick="startVoiceInput()">🎤 Speak</button>
+    </div>
+  </main>
+
+  <script>
+    function sendMessage(text = null) {
+      const input = document.getElementById("chatInput");
+      const message = text || input.value;
+      const chatBox = document.getElementById("chatBox");
+
+      if (message.trim() !== "") {
+        const userMsg = document.createElement("div");
+        userMsg.className = "user-msg";
+        userMsg.textContent = message;
+        chatBox.appendChild(userMsg);
+
+        const botReply = "I’m here for you. You’re not alone.";
+        const botMsg = document.createElement("div");
+        botMsg.className = "bot-msg";
+        botMsg.textContent = botReply;
+        chatBox.appendChild(botMsg);
+
+        speak(botReply);
+
+        input.value = "";
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    }
+
+    function startVoiceInput() {
+      const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.start();
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('chatInput').value = transcript;
+        sendMessage(transcript);
+      };
+    }
+
+    function speak(text) {
+      const synth = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      synth.speak(utterance);
+    }
+  </script>
+</body>
+</html>
