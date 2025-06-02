@@ -8,7 +8,6 @@
     "test": "jest --coverage",
     "sonar": "npx sonar-scanner"
   },
-  "keywords": [],
   "author": "Kasfi Ahamed",
   "license": "MIT",
   "dependencies": {
