@@ -90,10 +90,8 @@ pipeline {
   post {
     always {
       echo "🧹 Cleaning up Docker containers..."
-      node {
-        dir('backend') {
-          bat 'docker-compose down -v || exit 0'
-        }
+      dir('backend') {
+        bat 'docker-compose down -v || exit 0'
       }
     }
     failure {
