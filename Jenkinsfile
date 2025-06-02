@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    SONAR_TOKEN = credentials('sonarqube-token') // ✅ updated ID
+    SONAR_TOKEN = credentials('sonarqube-token') // 🔐 Correct credential ID
   }
 
   stages {
@@ -60,7 +60,7 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
-        timeout(time: 3, unit: 'MINUTES') {
+        timeout(time: 10, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
       }
