@@ -2,8 +2,7 @@ pipeline {
   agent any
 
   environment {
-    SONARQUBE_ENV = "LocalSonarQube"
-    SONAR_AUTH_TOKEN = credentials('SONAR_AUTH_TOKEN')
+    SONARQUBE_ENV = "LocalSonarQube"  // This must match the name in Jenkins > SonarQube config
   }
 
   stages {
@@ -33,7 +32,7 @@ pipeline {
       steps {
         dir('backend') {
           bat 'npm audit --json > audit-report.json || exit 0'
-          echo 'Security audit completed. Check audit-report.json'
+          echo 'Security audit completed. Review audit-report.json.'
         }
       }
     }
@@ -48,8 +47,7 @@ pipeline {
                 -Dsonar.sources=. ^
                 -Dsonar.coverage.exclusions=**/node_modules/** ^
                 -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info ^
-                -Dsonar.host.url=http://localhost:9000 ^
-                -Dsonar.login=%SONAR_AUTH_TOKEN%
+                -Dsonar.host.url=http://localhost:9000
             '''
           }
         }
@@ -63,7 +61,6 @@ pipeline {
       }
     }
 
-    // Optional: Fail pipeline if SonarQube Quality Gate fails
     stage('Quality Gate') {
       steps {
         timeout(time: 2, unit: 'MINUTES') {
@@ -74,8 +71,11 @@ pipeline {
   }
 
   post {
-    always {
-      echo '✅ Pipeline complete. Check SonarQube for reports.'
+    success {
+      echo '✅ All pipeline stages passed. Application deployed and code quality verified.'
+    }
+    failure {
+      echo '❌ Pipeline failed. Check logs for issues.'
     }
   }
 }
