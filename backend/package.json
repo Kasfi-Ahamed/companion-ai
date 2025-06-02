@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --runInBand --detectOpenHandles --forceExit --coverage"
+    "test": "jest --config=jest.config.js --runInBand --detectOpenHandles --forceExit --coverage"
   },
   "keywords": [],
   "author": "Kasfi Ahamed",
