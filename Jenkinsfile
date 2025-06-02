@@ -2,12 +2,14 @@ pipeline {
   agent any
 
   environment {
-    MONGO_URI = 'mongodb://mongo:27017/companion-ai-test'
-    SONAR_SCANNER_HOME = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+    MONGO_URI = "mongodb://mongo:27017/companion-ai-test"
+  }
+
+  tools {
+    nodejs "NodeJS" // Ensure NodeJS tool is configured in Jenkins
   }
 
   stages {
-
     stage('Checkout SCM') {
       steps {
         git branch: 'main', url: 'https://github.com/Kasfi-Ahamed/companion-ai.git'
@@ -25,9 +27,14 @@ pipeline {
     stage('Test') {
       steps {
         dir('backend') {
+          echo "🧪 Starting MongoDB and Backend using docker-compose..."
           bat 'docker-compose down -v || exit 0'
           bat 'docker-compose up -d'
-          bat 'ping -n 20 127.0.0.1 > nul'
+
+          echo "⏳ Waiting for MongoDB container to be healthy..."
+          bat 'ping -n 20 127.0.0.1 >nul'
+
+          echo "🚀 Running tests inside the backend container..."
           bat 'docker-compose exec -T backend npm run test -- --coverage'
         }
       }
@@ -36,6 +43,7 @@ pipeline {
     stage('Security') {
       steps {
         dir('backend') {
+          echo "🔐 Running security audit..."
           bat 'npm audit --json > audit-report.json || exit 0'
         }
       }
@@ -44,35 +52,11 @@ pipeline {
     stage('Code Quality') {
       steps {
         dir('backend') {
+          echo "📊 Running SonarScanner..."
           withSonarQubeEnv('SonarScanner') {
-            bat """
-              ${SONAR_SCANNER_HOME}/bin/sonar-scanner.bat ^
-              -Dsonar.projectKey=companion-ai ^
-              -Dsonar.sources=. ^
-              -Dsonar.host.url=http://localhost:9000 ^
-              -Dsonar.login=%SONAR_TOKEN% ^
-              -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            """
+            bat 'sonar-scanner -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.token=%SONARQUBE_TOKEN%'
           }
         }
-      }
-    }
-
-    stage('Deployment') {
-      steps {
-        echo '🚀 Deployment stage placeholder...'
-      }
-    }
-
-    stage('Release') {
-      steps {
-        echo '📦 Release stage placeholder...'
-      }
-    }
-
-    stage('Monitoring') {
-      steps {
-        echo '📈 Monitoring stage placeholder...'
       }
     }
 
@@ -83,15 +67,37 @@ pipeline {
         }
       }
     }
+
+    stage('Deployment') {
+      steps {
+        echo "🚀 Deployment stage placeholder..."
+      }
+    }
+
+    stage('Release') {
+      steps {
+        echo "📦 Release stage placeholder..."
+      }
+    }
+
+    stage('Monitoring') {
+      steps {
+        echo "📈 Monitoring stage placeholder..."
+      }
+    }
   }
 
   post {
     always {
-      echo '🧹 Cleaning up Docker containers...'
-      bat 'cd backend && docker-compose down -v || exit 0'
+      echo "🧹 Cleaning up Docker containers..."
+      node {
+        dir('backend') {
+          bat 'docker-compose down -v || exit 0'
+        }
+      }
     }
     failure {
-      echo '❌ Pipeline failed. Check logs for details.'
+      echo "❌ Pipeline failed. Check logs for details."
     }
   }
 }
