@@ -27,7 +27,7 @@ describe('User Authentication', () => {
     });
 
     expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty('token');
+    expect(res.body).toHaveProperty('message', 'User registered successfully');
     token = res.body.token;
   });
 

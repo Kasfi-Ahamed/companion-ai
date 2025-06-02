@@ -55,7 +55,7 @@ pipeline {
                 -Dsonar.projectKey=companion-ai ^
                 -Dsonar.sources=. ^
                 -Dsonar.host.url=%SONAR_HOST_URL% ^
-                -Dsonar.token=%SONAR_TOKEN% ^
+                -Dsonar.token=%sonarqube-token% ^
                 -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             '''
           }

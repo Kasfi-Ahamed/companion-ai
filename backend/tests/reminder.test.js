@@ -62,6 +62,6 @@ describe('Reminder API', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.message).toBe('Reminder deleted successfully');
+    expect(res.body.message).toBe('Reminder deleted');
   });
 });
