@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    MONGO_URI = 'mongodb://localhost:27017/companion-ai'
+    SONARQUBE_ENV = "LocalSonarQube"
   }
 
   stages {
@@ -13,24 +13,24 @@ pipeline {
     }
 
     stage('Build') {
-      steps {
-        dir('backend') {
+      dir('backend') {
+        steps {
           bat 'npm install'
         }
       }
     }
 
     stage('Test') {
-      steps {
-        dir('backend') {
+      dir('backend') {
+        steps {
           bat 'npm run test -- --coverage'
         }
       }
     }
 
     stage('Security') {
-      steps {
-        dir('backend') {
+      dir('backend') {
+        steps {
           bat 'npm audit --json > audit-report.json || exit 0'
           echo 'Security audit completed. Check audit-report.json'
         }
@@ -39,18 +39,24 @@ pipeline {
 
     stage('Code Quality') {
       steps {
-        dir('backend') {
-          bat 'echo Running static code analysis (placeholder)' // Replace with SonarQube if configured
+        withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+          dir('backend') {
+            bat '''
+              npx sonar-scanner ^
+                -Dsonar.projectKey=companion-ai ^
+                -Dsonar.sources=. ^
+                -Dsonar.host.url=http://localhost:9000 ^
+                -Dsonar.login=%SONAR_AUTH_TOKEN%
+            '''
+          }
         }
       }
     }
 
     stage('Deploy') {
       steps {
-        bat '''
-          docker-compose down -v || exit 0
-          docker-compose up --build -d
-        '''
+        bat 'docker-compose down -v || exit 0'
+        bat 'docker-compose up --build -d'
       }
     }
   }
