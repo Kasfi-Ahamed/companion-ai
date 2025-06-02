@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    SONAR_TOKEN = credentials('sonar-token')
+    SONAR_TOKEN = credentials('sonarqube-token') // ✅ updated ID
   }
 
   stages {
@@ -49,7 +49,7 @@ pipeline {
       steps {
         dir('backend') {
           echo '📊 Running SonarScanner...'
-          withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+          withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
             withSonarQubeEnv('SonarScanner') {
               bat 'sonar-scanner -Dproject.settings=sonar-project.properties'
             }
