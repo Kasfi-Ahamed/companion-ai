@@ -50,15 +50,17 @@ pipeline {
     }
 
     stage('Code Quality') {
-      steps {
-        dir('backend') {
-          echo "📊 Running SonarScanner..."
-          withSonarQubeEnv('SonarScanner') {
-            bat 'sonar-scanner -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.token=%SONARQUBE_TOKEN%'
-          }
+  steps {
+    dir('backend') {
+      echo "📊 Running SonarScanner..."
+      withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+        withSonarQubeEnv('SonarScanner') {
+          bat 'sonar-scanner -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.host.url=http://localhost:9000 -Dsonar.token=%SONAR_TOKEN%'
         }
       }
     }
+  }
+}
 
     stage('Quality Gate') {
       steps {
