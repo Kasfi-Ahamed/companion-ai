@@ -49,7 +49,7 @@ pipeline {
       steps {
         dir('backend') {
           echo '📊 Running SonarScanner...'
-          withCredentials([string(credentialsId: 'LocalSonarQube', variable: 'SONAR_TOKEN')]) {
+          withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
             bat '''
               sonar-scanner.bat ^
                 -Dsonar.projectKey=companion-ai ^
