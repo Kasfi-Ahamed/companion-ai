@@ -1,11 +1,12 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mongo:
-    image: mongo:5.0
-    container_name: mongo
+    image: mongo
     ports:
       - "27017:27017"
+    networks:
+      - companion-net
     healthcheck:
       test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -14,15 +15,15 @@ services:
 
   backend:
     build: .
-    container_name: backend
+    ports:
+      - "5000:5000"
     depends_on:
       mongo:
         condition: service_healthy
+    networks:
+      - companion-net
     environment:
       - MONGO_URI=mongodb://mongo:27017/companion-ai
-    ports:
-      - "5000:5000"
-    command: >
-      sh -c "npm install && node server.js"
-    volumes:
-      - ./coverage:/app/coverage
+
+networks:
+  companion-net:
