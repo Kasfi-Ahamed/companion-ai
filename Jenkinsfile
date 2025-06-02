@@ -25,14 +25,9 @@ pipeline {
     stage('Test') {
       steps {
         dir('backend') {
-          echo '🧪 Starting MongoDB and Backend using docker-compose...'
           bat 'docker-compose down -v || exit 0'
           bat 'docker-compose up -d'
-
-          echo '⏳ Waiting for MongoDB container to be healthy...'
           bat 'ping -n 20 127.0.0.1 > nul'
-
-          echo '🚀 Running tests inside the backend container...'
           bat 'docker-compose exec -T backend npm run test -- --coverage'
         }
       }
@@ -41,7 +36,6 @@ pipeline {
     stage('Security') {
       steps {
         dir('backend') {
-          echo '🔐 Running security audit...'
           bat 'npm audit --json > audit-report.json || exit 0'
         }
       }
@@ -50,7 +44,6 @@ pipeline {
     stage('Code Quality') {
       steps {
         dir('backend') {
-          echo '📊 Running SonarScanner...'
           withSonarQubeEnv('LocalSonarQube') {
             bat """
               ${SONAR_SCANNER_HOME}/bin/sonar-scanner.bat ^
@@ -94,10 +87,8 @@ pipeline {
 
   post {
     always {
-      echo '🧹 Cleaning up...'
-      dir('backend') {
-        bat 'docker-compose down -v || exit 0'
-      }
+      echo '🧹 Cleaning up Docker containers...'
+      bat 'cd backend && docker-compose down -v || exit 0'
     }
     failure {
       echo '❌ Pipeline failed. Check logs for details.'
