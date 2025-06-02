@@ -13,24 +13,24 @@ pipeline {
     }
 
     stage('Build') {
-      dir('backend') {
-        steps {
+      steps {
+        dir('backend') {
           bat 'npm install'
         }
       }
     }
 
     stage('Test') {
-      dir('backend') {
-        steps {
+      steps {
+        dir('backend') {
           bat 'npm run test -- --coverage'
         }
       }
     }
 
     stage('Security') {
-      dir('backend') {
-        steps {
+      steps {
+        dir('backend') {
           bat 'npm audit --json > audit-report.json || exit 0'
           echo 'Security audit completed. Check audit-report.json'
         }
@@ -63,7 +63,7 @@ pipeline {
 
   post {
     always {
-      echo 'Pipeline execution complete.'
+      echo '✅ Pipeline complete. Check SonarQube for reports.'
     }
   }
 }
