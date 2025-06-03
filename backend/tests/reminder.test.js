@@ -1,74 +1,61 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
 const app = require('../app');
-require('dotenv').config({ path: '.env.test' });
+const mongoose = require('mongoose');
 
 let token;
 let reminderId;
 
 beforeAll(async () => {
-  const dbUri = process.env.MONGO_URI;
-  await mongoose.connect(dbUri);
-
-  const testUser = {
+  await request(app).post('/api/auth/register').send({
     name: 'Reminder Tester',
-    email: 'reminder@example.com',
-    password: 'testpassword'
-  };
+    email: 'reminder@test.com',
+    password: 'test123'
+  });
 
-  // Register
-  await request(app).post('/api/auth/register').send(testUser);
+  const res = await request(app).post('/api/auth/login').send({
+    email: 'reminder@test.com',
+    password: 'test123'
+  });
 
-  // Login
-  const loginRes = await request(app)
-    .post('/api/auth/login')
-    .send({ email: testUser.email, password: testUser.password });
-
-  token = loginRes.body.token;
+  token = res.body.token;
 });
 
 afterAll(async () => {
-  await mongoose.connection.dropDatabase();
   await mongoose.connection.close();
 });
 
 describe('Reminder API', () => {
-  it('should create a reminder', async () => {
+  test('Create a new reminder', async () => {
     const res = await request(app)
       .post('/api/reminder')
       .set('Authorization', `Bearer ${token}`)
       .send({
         title: 'Test Reminder',
-        date: '2025-12-31',
-        time: '23:59'
+        date: '2025-06-10',
+        time: '15:30',
+        description: 'Checkup reminder'
       });
 
-    console.log('📅 CREATE REMINDER RESPONSE:', res.body);
-
     expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty('_id');
+    expect(res.body.title).toBe('Test Reminder');
     reminderId = res.body._id;
   });
 
-  it('should fetch all reminders', async () => {
+  test('Get all reminders', async () => {
     const res = await request(app)
       .get('/api/reminder')
       .set('Authorization', `Bearer ${token}`);
-
-    console.log('📋 FETCH REMINDERS RESPONSE:', res.body);
 
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('should delete the reminder', async () => {
+  test('Delete the created reminder', async () => {
     const res = await request(app)
       .delete(`/api/reminder/${reminderId}`)
       .set('Authorization', `Bearer ${token}`);
 
-    console.log('🗑 DELETE REMINDER RESPONSE:', res.body);
-
     expect(res.statusCode).toBe(200);
-    expect(res.body.message).toBe('Reminder deleted');
+    expect(res.body.message).toBe('Reminder deleted successfully');
   });
 });
