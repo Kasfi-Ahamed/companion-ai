@@ -1,24 +1,27 @@
-version: '3'
+version: '3.8'
 services:
+  backend:
+    build:
+      context: .
+    container_name: backend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongodb
+    networks:
+      - backend_default
+    env_file:
+      - .env.test
+    command: ["sh", "wait-for-mongo.sh"]
+
   mongodb:
     image: mongo
     container_name: mongodb
     ports:
       - "27017:27017"
     networks:
-      - backend-net
-
-  backend:
-    build: .
-    container_name: backend
-    depends_on:
-      - mongodb
-    networks:
-      - backend-net
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017/companion-ai
-    command: ["sh", "-c", "./wait-for-mongo.sh && node server.js"]
+      - backend_default
 
 networks:
-  backend-net:
+  backend_default:
     driver: bridge

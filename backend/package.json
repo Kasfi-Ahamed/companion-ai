@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "cross-env NODE_ENV=test jest --coverage --runInBand --detectOpenHandles --forceExit"
+    "test": "cross-env NODE_ENV=test jest --coverage --coverageReporters=lcov --config=jest.config.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
