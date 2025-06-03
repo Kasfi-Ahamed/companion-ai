@@ -1,41 +1,24 @@
+version: '3'
 services:
-  mongo:
+  mongodb:
     image: mongo
-    container_name: mongo
+    container_name: mongodb
     ports:
       - "27017:27017"
     networks:
-      - companion-net
-    healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - backend-net
 
   backend:
     build: .
     container_name: backend
     depends_on:
-      mongo:
-        condition: service_healthy
-    ports:
-      - "5000:5000"
+      - mongodb
     networks:
-      - companion-net
-    env_file:
-      - .env.test
-    command: sh -c "./wait-for-mongo.sh && npm run test"
-
-  sonarqube:
-    image: sonarqube:latest
-    container_name: sonarqube
-    ports:
-      - "9001:9000" # Changed from 9000 to 9001 to avoid conflict
+      - backend-net
     environment:
-      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
-    networks:
-      - companion-net
+      - MONGO_URI=mongodb://mongodb:27017/companion-ai
+    command: ["sh", "-c", "./wait-for-mongo.sh && node server.js"]
 
 networks:
-  companion-net:
+  backend-net:
     driver: bridge

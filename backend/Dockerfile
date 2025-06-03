@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
@@ -7,8 +7,7 @@ RUN npm install
 
 COPY . .
 
-# Include test environment file for CI
-COPY .env.test .env.test
+RUN chmod +x wait-for-mongo.sh
 
 EXPOSE 5000
-CMD ["npm", "start"]
+CMD ["sh", "-c", "./wait-for-mongo.sh && node server.js"]

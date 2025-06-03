@@ -1,9 +1,9 @@
 #!/bin/sh
-# Wait until MongoDB is available
-until nc -z mongo 27017; do
-  echo "⏳ Waiting for MongoDB..."
-  sleep 2
+
+echo "⏳ Waiting for MongoDB to start..."
+
+until nc -z mongodb 27017; do
+  sleep 1
 done
 
-echo "✅ MongoDB is up!"
-exec "$@"
+echo "✅ MongoDB is up. Starting the server..."

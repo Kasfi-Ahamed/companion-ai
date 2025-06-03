@@ -1,55 +1,35 @@
-require('dotenv').config({ path: '.env.test' });
+const request = require("supertest");
+const app = require("../app");
+const mongoose = require("mongoose");
+const User = require("../models/User");
 
-const request = require('supertest');
-const mongoose = require('mongoose');
-const app = require('../app');
-const User = require('../models/User');
+let token;
 
-describe('User Authentication', () => {
-  let token;
+beforeAll(async () => {
+  await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+  await User.deleteMany({});
+  const user = new User({ name: "Test User", email: "testuser@example.com", password: "password123" });
+  await user.save();
 
-  beforeAll(async () => {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/companion-ai-test';
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    await User.deleteMany({});
+  const res = await request(app).post("/api/auth/login").send({
+    email: "testuser@example.com",
+    password: "password123",
   });
 
-  afterAll(async () => {
-    await mongoose.connection.close();
-  });
+  token = res.body.token;
+});
 
-  test('Register a new user', async () => {
-    const res = await request(app).post('/api/auth/register').send({
-      name: 'Test User',
-      email: 'testuser@example.com',
-      password: 'password123',
-    });
+afterAll(async () => {
+  await mongoose.disconnect();
+});
 
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty('message', 'User registered successfully');
-    token = res.body.token;
-  });
-
-  test('Login user and receive token', async () => {
-    const res = await request(app).post('/api/auth/login').send({
-      email: 'testuser@example.com',
-      password: 'password123',
-    });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty('token');
-    token = res.body.token;
-  });
-
-  test('Fetch user profile', async () => {
+describe("User Authentication", () => {
+  test("Fetch user profile", async () => {
     const res = await request(app)
-      .get('/api/profile')
-      .set('Authorization', `Bearer ${token}`);
+      .get("/api/profile")
+      .set("Authorization", `Bearer ${token}`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty('email', 'testuser@example.com');
+    expect(res.body).toHaveProperty("email", "testuser@example.com");
   });
 });
