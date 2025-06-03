@@ -2,20 +2,21 @@ pipeline {
   agent any
 
   environment {
-    NODE_ENV = 'test'
-    MONGO_URI = 'mongodb://localhost:27017/companion-ai'
-    SONAR_TOKEN = credentials('sonarqube-token') // Replace with actual Jenkins credential ID
-  }
-
-  tools {
-    nodejs 'NodeJS' // Ensure NodeJS is configured in Jenkins Global Tools
+    SONAR_SCANNER_HOME = tool 'SonarScanner'
+    NODE_HOME = tool name: 'NodeJS', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'
+    PATH = "${NODE_HOME}/bin:${env.PATH}"
   }
 
   stages {
-
     stage('Checkout SCM') {
       steps {
-        checkout scm
+        checkout([$class: 'GitSCM',
+          branches: [[name: '*/main']],
+          userRemoteConfigs: [[
+            url: 'https://github.com/Kasfi-Ahamed/companion-ai.git',
+            credentialsId: 'github-creds'
+          ]]
+        ])
       }
     }
 
@@ -30,7 +31,7 @@ pipeline {
     stage('Run Tests') {
       steps {
         dir('backend') {
-          bat 'npm run test -- --coverage'
+          bat 'cross-env NODE_ENV=test jest --coverage --coverageReporters=lcov --config=jest.config.js'
         }
       }
     }
@@ -39,6 +40,7 @@ pipeline {
       steps {
         dir('backend') {
           bat 'npm audit --json > audit-report.json || exit 0'
+          echo 'Security audit completed. Check audit-report.json.'
         }
       }
     }
@@ -46,15 +48,8 @@ pipeline {
     stage('Code Quality') {
       steps {
         dir('backend') {
-          withSonarQubeEnv('SonarScanner') {
-            bat '''
-              sonar-scanner ^
-                -Dsonar.projectKey=companion-ai ^
-                -Dsonar.sources=. ^
-                -Dsonar.host.url=http://localhost:9001 ^
-                -Dsonar.login=%SONAR_TOKEN% ^
-                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            '''
+          withSonarQubeEnv('SonarQube') {
+            bat "${env.SONAR_SCANNER_HOME}/bin/sonar-scanner -Dsonar.projectKey=companion-ai -Dsonar.sources=. -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info"
           }
         }
       }
@@ -62,23 +57,22 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
-        timeout(time: 10, unit: 'MINUTES') {
+        timeout(time: 1, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
       }
     }
 
+    stage('Post Actions') {
+      steps {
+        echo 'Pipeline completed successfully.'
+      }
+    }
   }
 
   post {
-    always {
-      echo 'Pipeline execution complete.'
-    }
     failure {
       echo 'Pipeline failed.'
-    }
-    success {
-      echo 'Pipeline succeeded.'
     }
   }
 }
