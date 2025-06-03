@@ -1,0 +1,99 @@
+pipeline {
+  agent any
+
+  environment {
+    MONGO_URI = 'mongodb://localhost:27017/companion-ai'
+    SONAR_HOST_URL = 'http://localhost:9000'
+    SONAR_TOKEN = credentials('sonar-token')
+  }
+
+  tools {
+    nodejs 'NodeJS_20'
+  }
+
+  stages {
+
+    stage('Checkout SCM') {
+      steps {
+        checkout([$class: 'GitSCM',
+          branches: [[name: '*/main']],
+          userRemoteConfigs: [[
+            url: 'https://github.com/Kasfi-Ahamed/companion-ai.git',
+            credentialsId: 'github-creds'
+          ]]
+        ])
+      }
+    }
+
+    stage('Install Dependencies') {
+      steps {
+        dir('backend') {
+          bat 'npm install --include=dev'
+        }
+      }
+    }
+
+    stage('Run Tests') {
+      steps {
+        dir('backend') {
+          bat 'npx cross-env NODE_ENV=test jest --coverage --coverageReporters=lcov --config=jest.config.js'
+        }
+      }
+    }
+
+    stage('Security') {
+      steps {
+        dir('backend') {
+          bat '''
+            echo Running npm audit...
+            npm audit --json > audit-report.json || exit 0
+          '''
+        }
+      }
+    }
+
+    stage('Code Quality') {
+      steps {
+        dir('backend') {
+          bat '''
+            echo Running ESLint for code quality...
+            npx eslint . --ext .js,.jsx > eslint-report.txt || exit 0
+          '''
+        }
+      }
+    }
+
+    stage('SonarQube Analysis') {
+      steps {
+        dir('backend') {
+          withSonarQubeEnv('MySonarQubeServer') {
+            bat '''
+              npx sonar-scanner ^
+                -Dsonar.projectKey=companion-ai ^
+                -Dsonar.sources=. ^
+                -Dsonar.host.url=%SONAR_HOST_URL% ^
+                -Dsonar.login=%SONAR_TOKEN%
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+  }
+
+  post {
+    failure {
+      echo '❌ Pipeline failed.'
+    }
+    success {
+      echo '✅ Pipeline succeeded.'
+    }
+  }
+}
