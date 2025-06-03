@@ -1,3 +1,5 @@
+require('dotenv').config({ path: '.env.test' });
+
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../app');
@@ -37,10 +39,7 @@ describe('Reminder API', () => {
     const res = await request(app)
       .post('/api/reminder')
       .set('Authorization', `Bearer ${token}`)
-      .send({
-        title: 'Doctor Appointment',
-        time: '2025-06-02 10:00',
-      });
+      .send({ title: 'Doctor Appointment', time: '2025-06-02 10:00' });
 
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty('_id');

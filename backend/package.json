@@ -4,7 +4,7 @@
   "description": "Backend for Companion AI",
   "main": "server.js",
   "scripts": {
-    "test": "jest --coverage --coverageReporters=lcov"
+    "test": "cross-env NODE_ENV=test dotenv -e .env.test jest --coverage --coverageReporters=lcov"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -15,7 +15,8 @@
   },
   "devDependencies": {
     "jest": "^29.6.4",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.3",
+    "cross-env": "^7.0.3"
   },
   "author": "Kasfi",
   "license": "ISC"

@@ -1,11 +1,12 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mongo:
-    image: mongo:5.0
-    container_name: mongo
+    image: mongo
     ports:
       - "27017:27017"
+    networks:
+      - companion-net
     healthcheck:
       test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -14,14 +15,30 @@ services:
 
   backend:
     build: .
-    container_name: backend
+    ports:
+      - "5000:5000"
     depends_on:
       mongo:
         condition: service_healthy
+    networks:
+      - companion-net
     environment:
       - MONGO_URI=mongodb://mongo:27017/companion-ai
+
+  sonarqube:
+    image: sonarqube:lts
+    container_name: sonarqube
     ports:
-      - "5000:5000"
-    command: >
-      sh -c "npm install && node server.js"
-  
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    networks:
+      - companion-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+networks:
+  companion-net:
