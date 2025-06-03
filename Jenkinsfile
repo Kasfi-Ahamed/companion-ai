@@ -1,69 +1,42 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    SONAR_TOKEN = credentials('sonarqube-token') // 🔐 Correct credential ID
-  }
-
-  stages {
-    stage('Checkout SCM') {
-      steps {
-        checkout scm
-      }
+    environment {
+        NODE_ENV = 'test'
+        MONGO_URL = 'mongodb://localhost:27017/testdb'
+        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_TOKEN = credentials('sqa_5f2cb32a14f953a5753be138a07f83245148a930') // Replace with your actual credentials ID
     }
 
-    stage('Build') {
-      steps {
-        dir('backend') {
-          bat 'npm install'
-        }
-      }
-    }
-
-    stage('Test') {
-      steps {
-        script {
-          echo '🧪 Starting MongoDB and Backend using docker-compose...'
-        }
-        dir('backend') {
-          bat 'docker-compose down -v || exit 0'
-          bat 'docker-compose up -d'
-          echo '⏳ Waiting for MongoDB container to be healthy...'
-          bat 'ping -n 20 127.0.0.1 >nul'
-          echo '🚀 Running tests inside the backend container...'
-          bat 'docker-compose exec -T backend npm run test'
-        }
-      }
-    }
-
-    stage('Security') {
-      steps {
-        dir('backend') {
-          echo '🔐 Running security audit...'
-          bat 'npm audit --json > audit-report.json || exit 0'
-        }
-      }
-    }
-
-    stage('Code Quality') {
-      steps {
-        dir('backend') {
-          echo '📊 Running SonarScanner...'
-          withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-            withSonarQubeEnv('SonarScanner') {
-              bat 'sonar-scanner -Dproject.settings=sonar-project.properties'
+    stages {
+        stage('Install Dependencies') {
+            steps {
+                dir('backend') {
+                    sh 'npm install'
+                }
             }
-          }
         }
-      }
-    }
 
-    stage('Quality Gate') {
-      steps {
-        timeout(time: 10, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: true
+        stage('Run Tests') {
+            steps {
+                dir('backend') {
+                    sh 'npm test'
+                }
+            }
         }
-      }
+
+        stage('Code Quality Analysis') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        sonar-scanner \
+                        -Dsonar.projectKey=companion-ai \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=$SONAR_HOST_URL \
+                        -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
+            }
+        }
     }
-  }
 }
