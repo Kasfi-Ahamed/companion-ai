@@ -1,36 +1,17 @@
+// routes/profile.js
 const express = require("express");
+const router = express.Router();
 const User = require("../models/User");
 const protect = require("../middleware/auth");
 
-const router = express.Router();
-
-// Get profile
 router.get("/", protect, async (req, res) => {
-  res.status(200).json(req.user);
-});
-
-// Update mood
-router.post("/mood", protect, async (req, res) => {
   try {
-    const { mood } = req.body;
-    req.user.mood = mood;
-    await req.user.save();
-    res.status(200).json({ message: "Mood updated", mood });
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json(user);
   } catch (err) {
-    res.status(500).json({ message: "Error updating mood" });
-  }
-});
-
-// Update profile
-router.put("/", protect, async (req, res) => {
-  try {
-    const { name, email } = req.body;
-    req.user.name = name || req.user.name;
-    req.user.email = email || req.user.email;
-    await req.user.save();
-    res.status(200).json({ message: "Profile updated", user: req.user });
-  } catch (err) {
-    res.status(500).json({ message: "Error updating profile" });
+    console.error("❌ Error in /api/profile:", err.message);
+    res.status(500).json({ message: "Error fetching user profile" });
   }
 });
 
